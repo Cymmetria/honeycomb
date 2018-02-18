@@ -5,11 +5,11 @@ import os
 import json
 import logging
 import tempfile
-import contextlib
+import requests
 from multiprocessing import Process
+from requests.adapters import HTTPAdapter
 
 import pytest
-from six.moves import urllib
 from click.testing import CliRunner
 
 from honeycomb import cli
@@ -20,6 +20,8 @@ JSON_LOG_FILE = tempfile.mkstemp()[1]
 DEBUG_LOG_FILE = 'honeycomb.debug.log'
 SYSLOG_HOST = '127.0.0.1'
 SYSLOG_PORT = 5514
+rsession = requests.Session()
+rsession.mount('https://', HTTPAdapter(max_retries=3))
 
 
 @pytest.fixture(autouse=True)
@@ -65,7 +67,7 @@ def syslog(tmpdir):
 
 
 def json_log_is_valid(path):
-    with open(os.path.join(str(path), 'honeycomb.debug.log'), 'rb') as fh:
+    with open(os.path.join(str(path), 'honeycomb.debug.log'), 'r') as fh:
         for line in fh.readlines():
                 try:
                     json.loads(line)
@@ -75,7 +77,7 @@ def json_log_is_valid(path):
 
 
 def search_file_log(filepath, method, args):
-    with open(filepath, 'rb') as fh:
+    with open(filepath, 'r') as fh:
         for line in fh.readlines():
                 cmd = getattr(line, method)
                 if cmd(args):
@@ -84,7 +86,7 @@ def search_file_log(filepath, method, args):
 
 
 def search_json_log(filepath, key, value):
-    with open(filepath, 'rb') as fh:
+    with open(filepath, 'r') as fh:
         for line in fh.readlines():
                 log = json.loads(line)
                 if key in log and log[key] == value:
@@ -126,7 +128,7 @@ def test_list_nothing_installed(tmpdir):
 
 def test_list_remote(tmpdir):
     result = CliRunner().invoke(cli.main, obj={}, args=['--home', str(tmpdir), 'list', '--remote'])
-    assert 'simple_http (version: ' in result.output
+    assert 'simple_http' in result.output
     assert result.exit_code == 0
     assert not result.exception
     assert json_log_is_valid(tmpdir)
@@ -173,8 +175,8 @@ def test_run(running_service):
     assert wait_until(search_json_log, filepath=os.path.join(running_service, DEBUG_LOG_FILE), total_timeout=10,
                       key='message', value='Starting Simple HTTP service on port: 8888')
 
-    with contextlib.closing(urllib.request.urlopen('http://localhost:8888')) as fh:
-        assert b'Welcome to nginx!' in fh.read()
+    r = rsession.get('http://localhost:8888')
+    assert 'Welcome to nginx!' in r.text
 
 
 @pytest.mark.dependency(depends=['run', 'install_uninstall'])
@@ -184,8 +186,8 @@ def test_run(running_service):
 def test_json_log(running_service):
     assert wait_until(search_json_log, filepath=os.path.join(running_service, DEBUG_LOG_FILE), total_timeout=10,
                       key='message', value='Starting Simple HTTP service on port: 8888')
-    with contextlib.closing(urllib.request.urlopen('http://localhost:8888')) as fh:
-        assert b'Welcome to nginx!' in fh.read()
+    r = rsession.get('http://localhost:8888')
+    assert 'Welcome to nginx!' in r.text
 
     json_log = wait_until(search_json_log, filepath=JSON_LOG_FILE, total_timeout=10,
                           key='event_type', value='simple_http')
@@ -200,8 +202,8 @@ def test_json_log(running_service):
 def test_syslog(running_service, syslog):
     assert wait_until(search_json_log, filepath=os.path.join(running_service, DEBUG_LOG_FILE), total_timeout=10,
                       key='message', value='Starting Simple HTTP service on port: 8888')
-    with contextlib.closing(urllib.request.urlopen('http://localhost:8888')) as fh:
-        assert b'Welcome to nginx!' in fh.read()
+    r = rsession.get('http://localhost:8888')
+    assert 'Welcome to nginx!' in r.text
 
     assert wait_until(search_file_log, filepath=syslog, total_timeout=10,
                       method='find', args='act=simple_http')

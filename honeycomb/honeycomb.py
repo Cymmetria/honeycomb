@@ -35,7 +35,7 @@ class Honeycomb():
             self.logger.error(MISSING_FILE_ERROR.format(json_config_path))
             raise CustomServiceException(MISSING_FILE_ERROR.format(json_config_path))
 
-        with open(json_config_path, 'rb') as f:
+        with open(json_config_path, 'r') as f:
             config_json = json.load(f)
 
         # Validate service and alert config

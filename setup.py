@@ -7,7 +7,7 @@ from __future__ import absolute_import
 from setuptools import find_packages, setup
 from honeycomb import __version__
 
-dependencies = ['click', 'python-daemon', 'six', 'python-json-logger', 'svn', 'cefevent', 'requests']
+dependencies = ['click', 'python-daemon', 'six', 'python-json-logger', 'cefevent', 'requests']
 
 setup(
     name='honeycomb',

@@ -13,11 +13,9 @@ import zipfile
 import requests
 import tempfile
 import importlib
+from requests.adapters import HTTPAdapter
 
 import click
-import svn.local
-import svn.remote
-import svn.exception
 from pythonjsonlogger import jsonlogger
 from daemon.runner import DaemonRunner, DaemonRunnerStopFailureError
 
@@ -29,6 +27,7 @@ logger = None
 SVN_URL = 'https://github.com/Cymmetria/honeycomb_services/trunk/{service}'
 DEPS_DIR = 'venv'
 GITHUB_URL = 'https://github.com/Cymmetria/honeycomb_services/tree/master/{service}'
+GITHUB_RAW = 'https://cymmetria.github.io/honeycomb_services/'
 GITHUB_RAW_URL = 'https://raw.githubusercontent.com/Cymmetria/honeycomb_services/master/{service}/{filename}'
 PKG_INFO_TEMPLATE = """Name: {name}
 Installed: {installed}
@@ -36,6 +35,8 @@ Version: {commit_revision} Updated: {commit_date}
 Summary: {label}
 Location: {location}
 Requires: {requirements}"""
+rsession = requests.Session()
+rsession.mount('https://', HTTPAdapter(max_retries=3))
 
 
 class myRunner(DaemonRunner):
@@ -217,29 +218,18 @@ def list(ctx, remote):
         for alert in service.alert_types:
             s += " {}".format(alert.name)
         s += "]"
-
-        try:
-            info = get_local_svn_info(os.path.join(ctx.obj['HOME'], service_dir))
-            s += ' (version: {0:d}, updated: {1:%Y}{1:%m}{1:%d})'.format(info['commit_revision'], info['commit_date'])
-        except svn.exception.SvnException:
-            s += ' (local package)'
         click.secho(s)
     if not service:
-        click.secho('[*] You do not have any services installed, try installing one with `{} install`'
-                    .format(os.path.basename(__file__)))
+        click.secho('[*] You do not have any services installed, try installing one with `honeycomb install`')
 
     if remote:
         click.secho('\n[*] Additional services from online repository:', fg='green')
         try:
+            r = rsession.get(GITHUB_RAW + '/services.txt')
             logger.debug('fetching services from remote repo')
-            rsvn = svn.remote.RemoteClient(SVN_URL.format(service=''))
-            for sinfo in rsvn.list(extended=True):
-                logger.debug(sinfo)
-                if sinfo['is_directory'] and sinfo['name'] not in installed_services:
-                    click.secho('{0} (version: {1:d}, updated: {2:%Y}{2:%m}{2:%d})'
-                                .format(sinfo['name'], sinfo['commit_revision'], sinfo['date']))
+            click.secho(r.text)
 
-        except svn.exception.SvnException:
+        except requests.exceptions.ConnectionError:
             click.ClickException('Unable to fetch information from online repository')
     else:
         click.secho('\n[*] try running `honeycomb list -r` to see services available from our repository', fg='green')
@@ -253,17 +243,6 @@ def show(ctx, pkg, remote):
     """shows detailed information about a package"""
     logger.debug('in command: {}'.format(ctx.command.name))
 
-    def get_remote_info(pkgname):
-        info = {}
-        try:
-            rinfo = get_remote_svn_info(SVN_URL.format(service=pkg))
-            info['commit_date'] = "{0:%Y}{0:%m}{0:%d}".format(rinfo['commit_date'])
-            info['commit_revision'] = rinfo['commit_revision']
-        except svn.exception.SvnException:
-            raise click.ClickException('Cannot connect to online repository')
-
-        return info
-
     def collect_local_info(pkg, pkgpath):
         logger.debug('loading {} from {}'.format(pkg, pkgpath))
         service = hc.register_custom_service(pkgpath)
@@ -275,19 +254,12 @@ def show(ctx, pkg, remote):
         info['name'] = service.name
         info['label'] = service.label
         info['location'] = pkgpath
-        try:
-            linfo = get_local_svn_info(os.path.join(ctx.obj['HOME'], pkgpath))
-            info['commit_date'] = "{0:%Y}{0:%m}{0:%d}".format(linfo['commit_date'])
-            info['commit_revision'] = linfo['commit_revision']
-        except svn.exception.SvnException:
-            pass
 
         return info
 
     def collect_remote_info(pkg):
-        info.update(get_remote_info(pkg))
         try:
-            r = requests.get(GITHUB_RAW_URL.format(service=pkg, filename='config.json'))
+            r = rsession.get(GITHUB_RAW_URL.format(service=pkg, filename='config.json'))
             service = r.json()
             info['name'] = service['service']['name']
             info['label'] = service['service']['label']
@@ -300,7 +272,7 @@ def show(ctx, pkg, remote):
             raise click.ClickException('Unable to reach remote repository {}'.format(pkg))
 
         try:
-            r = requests.get(GITHUB_RAW_URL.format(service=pkg, filename='requirements.txt'))
+            r = rsession.get(GITHUB_RAW_URL.format(service=pkg, filename='requirements.txt'))
             info['requirements'] = ' '.join(r.text.split('\n'))
         except requests.exceptions.HTTPError as e:
             logger.debug(str(e))
@@ -360,29 +332,46 @@ def install_dir(ctx, pkgpath, delete_after_install):
     return install_deps(pkgpath)
 
 
-def install_from_file(ctx, pkgpath):
+def install_from_zip(ctx, pkgpath, delete_after_install=False):
     logger.debug('{} is a file, atttempting to load zip'.format(pkgpath))
     pkgtempdir = tempfile.mkdtemp(prefix='honeycomb_')
     try:
-        with zipfile.ZipFile(pkgpath, 'r') as pkgzip:
+        with zipfile.ZipFile(pkgpath) as pkgzip:
             pkgzip.extractall(pkgtempdir)
     except zipfile.BadZipfile as e:
         logger.error('{} is not a zip file'.format(pkgpath))
         raise click.ClickException(str(e))
+    if delete_after_install:
+        logger.debug('deleting {}'.format(pkgpath))
+        os.remove(pkgpath)
     logger.debug('installing from unzipped folder {}'.format(pkgtempdir))
     return install_dir(ctx, pkgtempdir, delete_after_install=True)
 
 
-def install_from_svn(ctx, pkgname):
+def install_from_repo(ctx, pkgname):
     logger.debug('trying to install {} from SVN'.format(pkgname))
-    r = svn.remote.RemoteClient(SVN_URL.format(service=pkgname))
-    pkgtempdir = tempfile.mkdtemp(prefix='honeycomb_')
+    pkgurl = '{}/{}.zip'.format(GITHUB_RAW, pkgname)
     try:
-        r.checkout(pkgtempdir)
-        return install_dir(ctx, pkgtempdir, delete_after_install=True)
-    except svn.exception.SvnException as e:
+        r = rsession.head(pkgurl)
+        r.raise_for_status()
+        total_size = int(r.headers.get('content-length', 0))
+        pkgsize = sizeof_fmt(total_size)
+        with click.progressbar(length=total_size, label='Downloading {} ({})..'.format(pkgname, pkgsize)) as bar:
+            r = rsession.get(pkgurl, stream=True)
+            with tempfile.NamedTemporaryFile(delete=False) as f:
+                downloaded = 0
+                for chunk in r.iter_content(chunk_size=1):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        bar.update(downloaded)
+        return install_from_zip(ctx, f.name, delete_after_install=True)
+    except requests.exceptions.HTTPError as e:
         logger.debug(str(e))
         click.ClickException('[-] Cannot find {} in online repository'.format(pkgname))
+    except requests.exceptions.ConnectionError as e:
+        logger.debug(str(e))
+        click.ClickException('[-] Unable to access online repository'.format(pkgname))
 
 
 @main.command()
@@ -400,11 +389,11 @@ def install(ctx, pkgs, delete_after_install=False):
             if os.path.isdir(pkgpath):
                 pip_status = install_dir(ctx, pkgpath, delete_after_install)
             else:  # pkgpath is file
-                pip_status = install_from_file(ctx, pkgpath)
+                pip_status = install_from_zip(ctx, pkgpath)
         else:
-            click.secho('Collecting {}...'.format(pkgpath))
+            click.secho('Collecting {}..'.format(pkgpath))
             logger.debug('cannot find {} locally, checking github repo'.format(pkgpath))
-            pip_status = install_from_svn(ctx, pkgpath)
+            pip_status = install_from_repo(ctx, pkgpath)
 
         if pip_status == 0:
             click.secho('[+] Success! now try using `honeycomb run {}`'
@@ -490,18 +479,6 @@ def setup_logging(home, verbose):
     return logging.getLogger(__name__)
 
 
-def get_local_svn_info(path):
-    logger.debug('loading local SVN info from {}'.format(path))
-    lsvn = svn.local.LocalClient(path)
-    return lsvn.info()
-
-
-def get_remote_svn_info(repo_url):
-    logger.debug('loading remote SVN info from {}'.format(repo_url))
-    rsvn = svn.remote.RemoteClient(repo_url)
-    return rsvn.info()
-
-
 def mkhome(home):
     home = os.path.realpath(home)
     try:
@@ -509,3 +486,13 @@ def mkhome(home):
             os.mkdir(home)
     except OSError as e:
         raise click.ClickException('Unable to create Honeycomb repository {}'.format(str(e)))
+
+
+def sizeof_fmt(num, suffix='B'):
+    if not num:
+        return 'unknown size'
+    for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
+        if abs(num) < 1024.0:
+            return "%3.1f%s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f%s%s".format(num, 'Yi', suffix)
