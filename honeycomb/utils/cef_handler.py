@@ -52,8 +52,8 @@ class CEFSyslogHandler(logging.handlers.SysLogHandler):
         # We need to convert record level to lowercase, maybe this will
         # change in the future.
 
-        prio = '<%d>' % self.encodePriority(self.facility,
-                                            self.mapPriority(record.levelname))
+        prio = b'<%d>' % self.encodePriority(self.facility,
+                                             self.mapPriority(record.levelname))
         # Message is a string. Convert to bytes as required by RFC 5424
         if type(msg) is six.text_type:
             msg = msg.encode('utf-8')

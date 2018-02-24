@@ -1,26 +1,22 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
+import sys
 import logging
+from multiprocessing import Process
 
 
-class ServerCustomService(object):
+class ServerCustomService(Process):
     # replace with pluggable logging (but keep logger methods so it interfaces)
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
 
-    # daemon properties
-    pidfile_path = None
-    stdout_path = None
-    stderr_path = None
-    stdin_path = "/dev/null"
-    pidfile_timeout = 3
+    service_args = None
+
+    def __init__(self, service_args=None, *args, **kwargs):
+        super(ServerCustomService, self).__init__(*args, **kwargs)
+        self.service_args = service_args
 
     def signal_ready(self):
         pass
-
-    def __str__(self):
-        return "Honeycomb Service - {}".format(self.__class__)
 
     def on_server_start(self):
         """
@@ -74,6 +70,8 @@ class ServerCustomService(object):
 
     def _on_server_shutdown(self, signum=None, frame=None):
         self.is_running = False
-        if isinstance(signum, int):
-            raise SystemExit("Terminating on signal {}".format(signum))
-        self.on_server_shutdown()  # TODO: this is never actually reached
+        if (signum):
+            sys.stderr.write('Terminating on signal {}'.format(signum))
+            self.logger.debug('Terminating on signal {}'.format(signum))
+        self.on_server_shutdown()
+        raise SystemExit()

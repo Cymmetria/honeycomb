@@ -20,9 +20,6 @@ class Honeycomb():
     logger = logging.getLogger(CUSTOM_SERVICES)
     alert_types = list()  # list of AlertType (Used only to make sure there are no duplicate alert names)
 
-    def get_service_folder(self, package_folder, builtin=False):
-        return os.path.abspath(package_folder)
-
     def get_custom_fields(self, package, builtin=False):
         path = os.path.join(self.get_service_folder(package, builtin), CONFIG_FILE_NAME)
         with open(path, b'r') as f:
@@ -32,8 +29,8 @@ class Honeycomb():
     def register_custom_service(self, package_folder):
         json_config_path = os.path.join(package_folder, CONFIG_FILE_NAME)
         if not os.path.exists(json_config_path):
-            self.logger.error(MISSING_FILE_ERROR.format(json_config_path))
-            raise CustomServiceException(MISSING_FILE_ERROR.format(json_config_path))
+            self.logger.debug(MISSING_FILE_ERROR.format(json_config_path))
+            raise CustomServiceException('Cannot find service ' + os.path.basename(package_folder))
 
         with open(json_config_path, 'r') as f:
             config_json = json.load(f)
@@ -49,26 +46,6 @@ class Honeycomb():
         service_type = self._create_service_object(config_json, alert_types)
 
         return service_type
-
-    def get_package_initial_data(self, package_folder):
-        json_config_path = os.path.join(package_folder, CONFIG_FILE_NAME)
-        if not os.path.exists(json_config_path):
-            self.logger.error(MISSING_FILE_ERROR.format(CONFIG_FILE_NAME))
-            raise CustomServiceException(MISSING_FILE_ERROR.format(CONFIG_FILE_NAME))
-
-        with open(json_config_path, 'rb') as f:
-            try:
-                config_json = json.load(f)
-            except ValueError:
-                self.logger.error(MALFORMED_CONFIG_FILE)
-                raise CustomServiceException(MALFORMED_CONFIG_FILE)
-            name = config_json.get(SERVICE_CONFIG_SECTION_KEY, {}).get(NAME, "")
-            label = config_json.get(SERVICE_CONFIG_SECTION_KEY, {}).get(LABEL, "")
-            description = config_json.get(SERVICE_CONFIG_SECTION_KEY, {}).get(DESCRIPTION, "")
-            return name, label, description
-
-    def get_service_path(self, service_name, builtin=False):
-        return os.path.abspath(service_name)
 
     def _validate_alert_configs(self, config_json):
         alert_types = config_json[ALERT_CONFIG_SECTION_KEY]
@@ -109,11 +86,11 @@ class Honeycomb():
         for field_name, validator_obj in six.iteritems(fields):
             field_value = config_json.get(field_name, None)
             if field_value is None:
-                self.logger.error(FIELD_DOES_NOT_EXIST.format(field_name))
+                self.logger.debug(FIELD_DOES_NOT_EXIST.format(field_name))
                 raise CustomServiceException(FIELD_DOES_NOT_EXIST.format(field_name))
 
             if not validator_obj.validator_func(field_value):
-                self.logger.error(CUSTOM_MESSAGE_ERROR_VALIDATION.format(
+                self.logger.debug(CUSTOM_MESSAGE_ERROR_VALIDATION.format(
                     field_name, field_value, validator_obj.get_error_message()))
                 raise CustomServiceException(
                     CUSTOM_MESSAGE_ERROR_VALIDATION.format(
@@ -123,21 +100,21 @@ class Honeycomb():
         if (field_type == BOOLEAN_TYPE and not isinstance(default, bool)) or \
            (field_type == INTEGER_TYPE and not isinstance(default, int)) or \
            (field_type == TEXT_TYPE and not isinstance(default, six.string_types)):
-            self.logger.error(PARAMETERS_DEFAULT_DOESNT_MATCH_TYPE.format(default, field_type))
+            self.logger.debug(PARAMETERS_DEFAULT_DOESNT_MATCH_TYPE.format(default, field_type))
             raise CustomServiceException(PARAMETERS_DEFAULT_DOESNT_MATCH_TYPE.format(default, field_type))
 
     def _validate_custom_field(self, field):
         for key, value in field.items():
             if key not in ALLOWED_KEYS:
-                self.logger.error(PARAMETERS_FIELD_ERROR.format(key, "property"))
+                self.logger.debug(PARAMETERS_FIELD_ERROR.format(key, "property"))
                 raise CustomServiceException(PARAMETERS_FIELD_ERROR.format(key, "property"))
             if key == TYPE:
                 if value not in ALLOWED_TYPES:
-                    self.logger.error(PARAMETERS_FIELD_ERROR.format(value, key))
+                    self.logger.debug(PARAMETERS_FIELD_ERROR.format(value, key))
                     raise CustomServiceException(PARAMETERS_FIELD_ERROR.format(value, key))
             if key == VALUE:
                 if not self.is_valid_field_name(value):
-                    self.logger.error(PARAMETERS_FIELD_ERROR.format(value, "field name"))
+                    self.logger.debug(PARAMETERS_FIELD_ERROR.format(value, "field name"))
                     raise CustomServiceException(PARAMETERS_FIELD_ERROR.format(value, "field name"))
 
     def is_valid_field_name(self, value):

@@ -25,7 +25,7 @@ setup(
     install_requires=dependencies,
     entry_points={
         'console_scripts': [
-            'honeycomb = honeycomb.scripts.cli:run_cli',
+            'honeycomb = honeycomb.__main__:main',
         ],
     },
     classifiers=[

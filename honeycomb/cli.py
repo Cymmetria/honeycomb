@@ -4,7 +4,6 @@ from __future__ import absolute_import
 import os
 import sys
 import pip
-import signal
 import ctypes
 import shutil
 import socket
@@ -16,15 +15,15 @@ import importlib
 from requests.adapters import HTTPAdapter
 
 import click
+import daemon.runner
+import daemon.daemon
 from pythonjsonlogger import jsonlogger
-from daemon.runner import DaemonRunner, DaemonRunnerStopFailureError
 
 from honeycomb import __version__, honeycomb
 from honeycomb.utils.cef_handler import CEFSyslogHandler
 
 hc = honeycomb.Honeycomb()
 logger = None
-SVN_URL = 'https://github.com/Cymmetria/honeycomb_services/trunk/{service}'
 DEPS_DIR = 'venv'
 GITHUB_URL = 'https://github.com/Cymmetria/honeycomb_services/tree/master/{service}'
 GITHUB_RAW = 'https://cymmetria.github.io/honeycomb_services/'
@@ -37,14 +36,28 @@ Location: {location}
 Requires: {requirements}"""
 rsession = requests.Session()
 rsession.mount('https://', HTTPAdapter(max_retries=3))
+CONTEXT_SETTINGS = dict(
+    obj={},
+    auto_envvar_prefix="HC",  # all parameters will be taken from HC_PARAMETER first
+)
 
 
-class myRunner(DaemonRunner):
-    def parse_args(argv):
-        """do nothing since we manage the daemon from code"""
+class myRunner(daemon.runner.DaemonRunner):
+    """overriding default runner behaviour to be simpler"""
+    def __init__(self, app, pidfile=None, stdout=sys.stdout, stderr=sys.stderr, stdin=open('/dev/null', 'rt')):
+        self.app = app
+        self.daemon_context = daemon.daemon.DaemonContext()
+        self.daemon_context.stdin = stdin
+        self.daemon_context.stdout = stdout
+        self.daemon_context.stderr = stderr
+        self.app.pidfile_path = pidfile
+        self.pidfile = None
+        if self.app.pidfile_path is not None:
+            self.pidfile = daemon.runner.make_pidlockfile(self.app.pidfile_path, 3)
+        self.daemon_context.pidfile = self.pidfile
 
 
-@click.group()
+@click.group(context_settings=CONTEXT_SETTINGS)
 @click.pass_context
 @click.option('--home', '-h', default=os.path.realpath(os.path.expanduser('~/.honeycomb')),
               help='Path Honeycomb repository', type=click.Path())
@@ -103,65 +116,57 @@ def run(ctx, service, daemon, json_log, syslog, syslog_host, syslog_port, syslog
 
     logger.debug('in command: {}'.format(ctx.command.name))
     logger.debug('loading {}'.format(service))
-    click.secho('[+] Loading {}'.format(service), fg='green')
+    click.secho('[+] Loading {}'.format(service))
     service = hc.register_custom_service(os.path.join(ctx.obj['HOME'], service))
-    if service:
-        if syslog:
-            click.secho('[+] Adding syslog handler', fg='green')
-            socktype = socket.SOCK_DGRAM if syslog_protocol == 'udp' else socket.SOCK_STREAM
-            cef_handler = CEFSyslogHandler(address=(syslog_host, syslog_port), socktype=socktype)
-            cef_handler.setLevel(logging.CRITICAL)
-            logging.getLogger().addHandler(cef_handler)
+    if syslog:
+        click.secho('[+] Adding syslog handler')
+        socktype = socket.SOCK_DGRAM if syslog_protocol == 'udp' else socket.SOCK_STREAM
+        cef_handler = CEFSyslogHandler(address=(syslog_host, syslog_port), socktype=socktype)
+        cef_handler.setLevel(logging.CRITICAL)
+        logging.getLogger().addHandler(cef_handler)
 
-        if json_log:
-            click.secho('[+] Adding JSON handler', fg='green')
-            json_handler = logging.handlers.WatchedFileHandler(filename=json_log)
-            json_handler.setLevel(logging.CRITICAL)
-            json_formatter = jsonlogger.JsonFormatter('%(levelname)s %(asctime)s %(module)s %(filename)s '
-                                                      '%(lineno)s %(funcName)s %(message)s')
-            json_handler.setFormatter(json_formatter)
-            logging.getLogger().addHandler(json_handler)
+    if json_log:
+        click.secho('[+] Adding JSON handler')
+        json_handler = logging.handlers.WatchedFileHandler(filename=json_log)
+        json_handler.setLevel(logging.CRITICAL)
+        json_formatter = jsonlogger.JsonFormatter('%(levelname)s %(asctime)s %(module)s %(filename)s '
+                                                  '%(lineno)s %(funcName)s %(message)s')
+        json_handler.setFormatter(json_formatter)
+        logging.getLogger().addHandler(json_handler)
 
-        # add custom paths so imports would work
-        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-        sys.path.insert(0, os.path.join(ctx.obj['HOME'], service.name, DEPS_DIR))
-        sys.path.insert(0, ctx.obj['HOME'])
+    # add custom paths so imports would work
+    sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+    sys.path.insert(0, os.path.join(ctx.obj['HOME'], service.name, DEPS_DIR))
+    sys.path.insert(0, ctx.obj['HOME'])
 
-        # get our service class instance
-        service_module = importlib.import_module(".".join([service.name, service.name + '_service']))
-        service_obj = service_module.service_class()
+    # get our service class instance
+    service_module = importlib.import_module(".".join([service.name, service.name + '_service']))
+    service_obj = service_module.service_class()
 
-        # prepare service_obj for deamon
-        # stdout/stderr will be reset if we're not forking
-        service_obj.pidfile_path = os.path.join(ctx.obj['HOME'], service.name + '.pid')
-        service_obj.stdout_path = os.path.join(ctx.obj['HOME'], service.name, 'stdout.log')
-        service_obj.stderr_path = os.path.join(ctx.obj['HOME'], service.name, 'stderr.log')
+    # prepare runner
+    if daemon:
+        runner = myRunner(service_obj,
+                          pidfile=os.path.join(ctx.obj['HOME'], service.name + '.pid'),
+                          stdout=open(os.path.join(ctx.obj['HOME'], service.name, 'stdout.log'), 'ab'),
+                          stderr=open(os.path.join(ctx.obj['HOME'], service.name, 'stderr.log'), 'ab'))
 
-        # prepare runner
-        if daemon:
-            runner = myRunner(service_obj)
-            runner.daemon_context.signal_map = {signal.SIGTERM: service_obj._on_server_shutdown}
-            runner.daemon_context.detach_process = daemon
-
-            files_preserve = []
-            for handler in logging.getLogger().handlers:
-                if hasattr(handler, 'stream'):
+        files_preserve = []
+        for handler in logging.getLogger().handlers:
+            if hasattr(handler, 'stream'):
+                if hasattr(handler.stream, 'fileno'):
                     files_preserve.append(handler.stream.fileno())
-                if hasattr(handler, 'socket'):
-                    files_preserve.append(handler.socket.fileno())
-            runner.daemon_context.files_preserve = files_preserve
-            logger.debug('Daemon Context: {}'.format(vars(runner.daemon_context)))
+            if hasattr(handler, 'socket'):
+                files_preserve.append(handler.socket.fileno())
+        runner.daemon_context.files_preserve = files_preserve
+        logger.debug('Daemon Context: {}'.format(vars(runner.daemon_context)))
 
-        click.secho('[+] Launching {} {}'.format(service.name, 'in Background' if daemon else ''), fg='green')
-        try:
-            runner._start() if daemon else service_obj.run()
-        except KeyboardInterrupt:
-            service_obj._on_server_shutdown()
+    click.secho('[+] Launching {} {}'.format(service.name, 'in daemon mode' if daemon else ''))
+    try:
+        runner._start() if daemon else service_obj.run()
+    except KeyboardInterrupt:
+        service_obj._on_server_shutdown()
 
-        click.secho('[*] {} has stopped'.format(service.name), fg='green')
-    else:
-        click.secho('[-] Failed to load {}'.format(service), fg='green')
-        logger.critical('Failed to load {}'.format(service))
+    click.secho('[*] {} has stopped'.format(service.name))
 
 
 @main.command()
@@ -169,31 +174,30 @@ def run(ctx, service, daemon, json_log, syslog, syslog_host, syslog_port, syslog
 @click.argument('service')
 def stop(ctx, service):
     logger.debug('in command: {}'.format(ctx.command.name))
-    service = hc.register_custom_service(os.path.join(ctx.obj['HOME'], service))
     logger.debug('loading {}'.format(service))
-    if service:
+    service = hc.register_custom_service(os.path.join(ctx.obj['HOME'], service))
 
-        # add custom paths so imports would work
-        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-        sys.path.insert(0, ctx.obj['HOME'])
+    # add custom paths so imports would work
+    sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+    sys.path.insert(0, os.path.join(ctx.obj['HOME'], service.name, DEPS_DIR))
+    sys.path.insert(0, ctx.obj['HOME'])
 
-        # get our service class instance
-        service_module = importlib.import_module(".".join([service.name, service.name + '_service']))
-        service_obj = service_module.service_class()
+    # get our service class instance
+    service_module = importlib.import_module(".".join([service.name, service.name + '_service']))
+    service_obj = service_module.service_class()
 
-        # prepare service_obj for deamon
-        service_obj.pidfile_path = os.path.join(ctx.obj['HOME'], service.name + '.pid')
-        service_obj.stdout_path = os.path.join(ctx.obj['HOME'], service.name, 'stdout.log')
-        service_obj.stderr_path = os.path.join(ctx.obj['HOME'], service.name, 'stderr.log')
-        runner = myRunner(service_obj)
-        click.secho('[*] Stopping {}'.format(service.name), fg='green')
-        try:
-            runner._stop()
-        except DaemonRunnerStopFailureError:
-            raise click.ClickException('{} does not seem to be running'.format(service.name))
+    # prepare runner
+    runner = myRunner(service_obj,
+                      pidfile=os.path.join(ctx.obj['HOME'], service.name + '.pid'),
+                      stdout=open(os.path.join(ctx.obj['HOME'], service.name, 'stdout.log'), 'ab'),
+                      stderr=open(os.path.join(ctx.obj['HOME'], service.name, 'stderr.log'), 'ab'))
 
-    else:
-        raise click.ClickException('Failed to load {}'.format(service))
+    click.secho('[*] Stopping {}'.format(service.name))
+    try:
+        runner._stop()
+    except daemon.runner.DaemonRunnerStopFailureError as e:
+        logger.debug(str(e))
+        click.ClickException('Unable to stop service, are you sure it is running?')
 
 
 @main.command()
@@ -206,7 +210,7 @@ def list(ctx, remote):
     """
     logger.debug('in command: {}'.format(ctx.command.name))
     installed_services = []
-    click.secho('[*] Installed services:', fg='green')
+    click.secho('[*] Installed services:')
     service = None
     for service_dir in next(os.walk(ctx.obj['HOME']))[1]:
         logger.debug('loading {}'.format(service_dir))
@@ -223,7 +227,7 @@ def list(ctx, remote):
         click.secho('[*] You do not have any services installed, try installing one with `honeycomb install`')
 
     if remote:
-        click.secho('\n[*] Additional services from online repository:', fg='green')
+        click.secho('\n[*] Additional services from online repository:')
         try:
             r = rsession.get(GITHUB_RAW + '/services.txt')
             logger.debug('fetching services from remote repo')
@@ -232,7 +236,7 @@ def list(ctx, remote):
         except requests.exceptions.ConnectionError:
             click.ClickException('Unable to fetch information from online repository')
     else:
-        click.secho('\n[*] try running `honeycomb list -r` to see services available from our repository', fg='green')
+        click.secho('\n[*] try running `honeycomb list -r` to see services available from our repository')
 
 
 @main.command()
@@ -306,7 +310,7 @@ def show(ctx, pkg, remote):
 def install_deps(pkgpath):
     if os.path.exists(os.path.join(pkgpath, 'requirements.txt')):
         logger.debug('installing dependencies')
-        click.secho('[*] Installing dependencies', fg='green')
+        click.secho('[*] Installing dependencies')
         pipargs = ['install', '--target', os.path.join(pkgpath, DEPS_DIR), '--ignore-installed',
                    '-r', os.path.join(pkgpath, 'requirements.txt')]
         logger.debug('running pip {}'.format(pipargs))
@@ -349,7 +353,7 @@ def install_from_zip(ctx, pkgpath, delete_after_install=False):
 
 
 def install_from_repo(ctx, pkgname):
-    logger.debug('trying to install {} from SVN'.format(pkgname))
+    logger.debug('trying to install {} from online repo'.format(pkgname))
     pkgurl = '{}/{}.zip'.format(GITHUB_RAW, pkgname)
     try:
         r = rsession.head(pkgurl)
@@ -397,7 +401,7 @@ def install(ctx, pkgs, delete_after_install=False):
 
         if pip_status == 0:
             click.secho('[+] Success! now try using `honeycomb run {}`'
-                        .format(os.path.basename(pkgpath)), fg='green')
+                        .format(os.path.basename(pkgpath)))
         else:
             click.secho('[-] Service installed but something went wrong with dependency install, please review logs')
 

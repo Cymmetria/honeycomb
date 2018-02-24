@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 import os
 
 from base_service import ServerCustomService
@@ -68,8 +66,8 @@ class SimpleHTTPService(ServerCustomService):
 
     def on_server_shutdown(self):
         if self.httpd:
-            self.logger.info("Simple HTTP service stopped")
             self.httpd.shutdown()
+            self.logger.info("Simple HTTP service stopped")
 
     def __str__(self):
         return "Simple HTTP"
