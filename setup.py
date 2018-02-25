@@ -7,7 +7,8 @@ from __future__ import absolute_import
 from setuptools import find_packages, setup
 from honeycomb import __version__
 
-dependencies = ['click', 'python-daemon', 'six', 'python-json-logger', 'cefevent', 'requests']
+with open('requirements.txt') as fp:
+    install_requires = fp.read()
 
 setup(
     name='honeycomb',
@@ -22,7 +23,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     platforms='any',
-    install_requires=dependencies,
+    install_requires=install_requires,
     entry_points={
         'console_scripts': [
             'honeycomb = honeycomb.__main__:main',

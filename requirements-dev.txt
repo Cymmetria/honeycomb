@@ -1,0 +1,2 @@
+tox
+-r requirements.txt
