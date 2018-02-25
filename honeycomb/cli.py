@@ -41,6 +41,7 @@ rsession.mount('https://', HTTPAdapter(max_retries=3))
 CONTEXT_SETTINGS = dict(
     obj={},
     auto_envvar_prefix="HC",  # all parameters will be taken from HC_PARAMETER first
+    max_content_width=120,
 )
 
 
@@ -66,8 +67,8 @@ class myRunner(daemon.runner.DaemonRunner):
 @click.option('--iamroot', is_flag=True, default=False, help='Force run as root (NOT RECOMMENDED!)')
 @click.option('--verbose', '-v', envvar="DEBUG", is_flag=True, default=False, help='Enable verbose logging')
 def main(ctx, home, iamroot, verbose):
-    global logger
     """Homeycomb is a honeypot framework"""
+    global logger
     mkhome(home)
     logger = setup_logging(home, verbose)
 
@@ -99,7 +100,7 @@ def validate_ip_or_hostname(ctx, param, value):
         raise click.BadParameter('{} must be a valid IP address or hostname')
 
 
-@main.command()
+@main.command(short_help='Load and run a specific service')
 @click.pass_context
 @click.argument('service', nargs=1)
 @click.argument('arg', nargs=-1)
@@ -190,10 +191,11 @@ def run(ctx, service, arg, args, daemon, json_log, syslog, syslog_host, syslog_p
     click.secho('[*] {} has stopped'.format(service.name))
 
 
-@main.command()
+@main.command(short_help='Stop a running service daemon')
 @click.pass_context
 @click.argument('service')
 def stop(ctx, service):
+    """stop a running service daemon"""
     logger.debug('in command: {}'.format(ctx.command.name))
     logger.debug('loading {}'.format(service))
     service = hc.register_custom_service(os.path.join(ctx.obj['HOME'], service))
@@ -221,7 +223,7 @@ def stop(ctx, service):
         click.ClickException('Unable to stop service, are you sure it is running?')
 
 
-@main.command()
+@main.command(short_help='List available services')
 @click.pass_context
 @click.option('-r', '--remote', is_flag=True, default=False, help='Include available services from online repository')
 def list(ctx, remote):
@@ -260,7 +262,43 @@ def list(ctx, remote):
         click.secho('\n[*] try running `honeycomb list -r` to see services available from our repository')
 
 
-@main.command()
+@main.command(short_help='Shows status of installed service(s)')
+@click.pass_context
+@click.argument('services', nargs=-1)
+@click.option('-a', '--show-all', is_flag=True, default=False, help='Show status for all services')
+def status(ctx, services, show_all):
+    """shows status of installed service(s)"""
+    logger.debug('in command: {}'.format(ctx.command.name))
+
+    def print_status(service):
+        service_dir = os.path.join(ctx.obj['HOME'], service)
+        if os.path.exists(service_dir):
+            pidfile = service_dir + '.pid'
+            if os.path.exists(pidfile):
+                try:
+                    with open(pidfile) as fh:
+                        pid = int(fh.read().strip())
+                    os.kill(pid, 0)
+                    status = 'running (pid: {})'.format(pid)
+                except OSError:
+                    status = 'not running (stale pidfile)'
+            else:
+                status = 'not running'
+        else:
+            status = 'no such service'
+        click.secho('{} - {}'.format(service, status))
+
+    if show_all:
+        for service_dir in next(os.walk(ctx.obj['HOME']))[1]:
+            print_status(service_dir)
+    elif services:
+        for service in services:
+            print_status(service)
+    else:
+        raise click.ClickException('You must specify a service name')
+
+
+@main.command(short_help='Show detailed information about a service')
 @click.pass_context
 @click.argument('pkg')
 @click.option('-r', '--remote', is_flag=True, default=False, help='Show information only from remote repository')
@@ -328,78 +366,7 @@ def show(ctx, pkg, remote):
     click.secho(PKG_INFO_TEMPLATE.format(**info))
 
 
-def install_deps(pkgpath):
-    if os.path.exists(os.path.join(pkgpath, 'requirements.txt')):
-        logger.debug('installing dependencies')
-        click.secho('[*] Installing dependencies')
-        pipargs = ['install', '--target', os.path.join(pkgpath, DEPS_DIR), '--ignore-installed',
-                   '-r', os.path.join(pkgpath, 'requirements.txt')]
-        logger.debug('running pip {}'.format(pipargs))
-        return pip.main(pipargs)
-    return 0
-
-
-def install_dir(ctx, pkgpath, delete_after_install):
-    logger.debug('{} is a directory, attempting to validate'.format(pkgpath))
-    service = hc.register_custom_service(pkgpath)
-    logger.debug('{} looks good, copying to {}'.format(pkgpath, ctx.obj['HOME']))
-    try:
-        shutil.copytree(pkgpath, os.path.join(ctx.obj['HOME'], service.name))
-        if delete_after_install:
-            logger.debug('deleting {}'.format(pkgpath))
-            shutil.rmtree(pkgpath)
-        pkgpath = os.path.join(ctx.obj['HOME'], service.name)
-    except OSError as e:
-        logger.exception(str(e))
-        raise click.ClickException('Sorry, already have a service called {}, try deleting it first.'
-                                   .format(service.name))
-
-    return install_deps(pkgpath)
-
-
-def install_from_zip(ctx, pkgpath, delete_after_install=False):
-    logger.debug('{} is a file, atttempting to load zip'.format(pkgpath))
-    pkgtempdir = tempfile.mkdtemp(prefix='honeycomb_')
-    try:
-        with zipfile.ZipFile(pkgpath) as pkgzip:
-            pkgzip.extractall(pkgtempdir)
-    except zipfile.BadZipfile as e:
-        logger.error('{} is not a zip file'.format(pkgpath))
-        raise click.ClickException(str(e))
-    if delete_after_install:
-        logger.debug('deleting {}'.format(pkgpath))
-        os.remove(pkgpath)
-    logger.debug('installing from unzipped folder {}'.format(pkgtempdir))
-    return install_dir(ctx, pkgtempdir, delete_after_install=True)
-
-
-def install_from_repo(ctx, pkgname):
-    logger.debug('trying to install {} from online repo'.format(pkgname))
-    pkgurl = '{}/{}.zip'.format(GITHUB_RAW, pkgname)
-    try:
-        r = rsession.head(pkgurl)
-        r.raise_for_status()
-        total_size = int(r.headers.get('content-length', 0))
-        pkgsize = sizeof_fmt(total_size)
-        with click.progressbar(length=total_size, label='Downloading {} ({})..'.format(pkgname, pkgsize)) as bar:
-            r = rsession.get(pkgurl, stream=True)
-            with tempfile.NamedTemporaryFile(delete=False) as f:
-                downloaded = 0
-                for chunk in r.iter_content(chunk_size=1):
-                    if chunk:
-                        f.write(chunk)
-                        downloaded += len(chunk)
-                        bar.update(downloaded)
-        return install_from_zip(ctx, f.name, delete_after_install=True)
-    except requests.exceptions.HTTPError as e:
-        logger.debug(str(e))
-        click.ClickException('[-] Cannot find {} in online repository'.format(pkgname))
-    except requests.exceptions.ConnectionError as e:
-        logger.debug(str(e))
-        click.ClickException('[-] Unable to access online repository'.format(pkgname))
-
-
-@main.command()
+@main.command(short_help='Install a service')
 @click.pass_context
 @click.argument('pkgs', nargs=-1)
 def install(ctx, pkgs, delete_after_install=False):
@@ -407,6 +374,73 @@ def install(ctx, pkgs, delete_after_install=False):
     logger.debug('in command: {}'.format(ctx.command.name))
     # TODO:
     # handle package name exists in HOME (upgrade? overwrite?)
+
+    def install_deps(pkgpath):
+        if os.path.exists(os.path.join(pkgpath, 'requirements.txt')):
+            logger.debug('installing dependencies')
+            click.secho('[*] Installing dependencies')
+            pipargs = ['install', '--target', os.path.join(pkgpath, DEPS_DIR), '--ignore-installed',
+                       '-r', os.path.join(pkgpath, 'requirements.txt')]
+            logger.debug('running pip {}'.format(pipargs))
+            return pip.main(pipargs)
+        return 0
+
+    def install_dir(ctx, pkgpath, delete_after_install):
+        logger.debug('{} is a directory, attempting to validate'.format(pkgpath))
+        service = hc.register_custom_service(pkgpath)
+        logger.debug('{} looks good, copying to {}'.format(pkgpath, ctx.obj['HOME']))
+        try:
+            shutil.copytree(pkgpath, os.path.join(ctx.obj['HOME'], service.name))
+            if delete_after_install:
+                logger.debug('deleting {}'.format(pkgpath))
+                shutil.rmtree(pkgpath)
+            pkgpath = os.path.join(ctx.obj['HOME'], service.name)
+        except OSError as e:
+            logger.exception(str(e))
+            raise click.ClickException('Sorry, already have a service called {}, try deleting it first.'
+                                       .format(service.name))
+
+        return install_deps(pkgpath)
+
+    def install_from_zip(ctx, pkgpath, delete_after_install=False):
+        logger.debug('{} is a file, atttempting to load zip'.format(pkgpath))
+        pkgtempdir = tempfile.mkdtemp(prefix='honeycomb_')
+        try:
+            with zipfile.ZipFile(pkgpath) as pkgzip:
+                pkgzip.extractall(pkgtempdir)
+        except zipfile.BadZipfile as e:
+            logger.error('{} is not a zip file'.format(pkgpath))
+            raise click.ClickException(str(e))
+        if delete_after_install:
+            logger.debug('deleting {}'.format(pkgpath))
+            os.remove(pkgpath)
+        logger.debug('installing from unzipped folder {}'.format(pkgtempdir))
+        return install_dir(ctx, pkgtempdir, delete_after_install=True)
+
+    def install_from_repo(ctx, pkgname):
+        logger.debug('trying to install {} from online repo'.format(pkgname))
+        pkgurl = '{}/{}.zip'.format(GITHUB_RAW, pkgname)
+        try:
+            r = rsession.head(pkgurl)
+            r.raise_for_status()
+            total_size = int(r.headers.get('content-length', 0))
+            pkgsize = sizeof_fmt(total_size)
+            with click.progressbar(length=total_size, label='Downloading {} ({})..'.format(pkgname, pkgsize)) as bar:
+                r = rsession.get(pkgurl, stream=True)
+                with tempfile.NamedTemporaryFile(delete=False) as f:
+                    downloaded = 0
+                    for chunk in r.iter_content(chunk_size=1):
+                        if chunk:
+                            f.write(chunk)
+                            downloaded += len(chunk)
+                            bar.update(downloaded)
+            return install_from_zip(ctx, f.name, delete_after_install=True)
+        except requests.exceptions.HTTPError as e:
+            logger.debug(str(e))
+            click.ClickException('[-] Cannot find {} in online repository'.format(pkgname))
+        except requests.exceptions.ConnectionError as e:
+            logger.debug(str(e))
+            click.ClickException('[-] Unable to access online repository'.format(pkgname))
 
     for pkgpath in pkgs:
         if os.path.exists(pkgpath):
@@ -427,12 +461,12 @@ def install(ctx, pkgs, delete_after_install=False):
             click.secho('[-] Service installed but something went wrong with dependency install, please review logs')
 
 
-@main.command()
+@main.command(short_help='Uninstall a service')
 @click.pass_context
 @click.option('-y', '--yes', is_flag=True, default=False, help='Don\'t ask for confirmation of uninstall deletions.')
 @click.argument('pkgs', nargs=-1)
 def uninstall(ctx, yes, pkgs):
-    """delete a local honeypot"""
+    """Uninstall a service"""
     logger.debug('in command: {}'.format(ctx.command.name))
 
     for pkgname in pkgs:

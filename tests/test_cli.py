@@ -44,6 +44,28 @@ def running_service(simple_http_installed, request):
 
 
 @pytest.fixture
+def running_daemon(simple_http_installed):
+    cmd = [RUN_HONEYCOMB, '--iamroot', '--home', simple_http_installed, 'run', '-d', 'simple_http', 'port=8888']
+    p = subprocess.Popen(' '.join(cmd), shell=True, env=os.environ.copy())
+    p.wait()
+    assert p.returncode == 0
+    assert wait_until(search_json_log, filepath=os.path.join(simple_http_installed, DEBUG_LOG_FILE), total_timeout=10,
+                      key='message', value='Starting Simple HTTP service on port: 8888')
+
+    yield simple_http_installed
+
+    result = CliRunner().invoke(cli.main, args=['--iamroot', '--home', simple_http_installed, 'stop', 'simple_http'])
+    assert result.exit_code == 0
+    assert not result.exception
+
+    try:
+        rsession.get('http://localhost:8888')
+        assert False, 'Service is still available (make sure to properly kill it before repeating test)'
+    except requests.exceptions.ConnectionError:
+        assert True
+
+
+@pytest.fixture
 def syslog(tmpdir):
     logfile = tmpdir.join('syslog.log')
     p = Process(target=runSyslogServer, args=(SYSLOG_HOST, SYSLOG_PORT, logfile))
@@ -229,24 +251,42 @@ def test_syslog(running_service, syslog):
                       method='find', args='src=127.0.0.1')
 
 
-@pytest.mark.dependency(depends=['run'])
-def test_daemon(simple_http_installed):
-    cmd = [RUN_HONEYCOMB, '--iamroot', '--home', simple_http_installed, 'run', '--daemon', 'simple_http', 'port=8888']
-    p = subprocess.Popen(' '.join(cmd), shell=True, env=os.environ.copy())
-    p.wait()
-    assert p.returncode == 0
-    assert wait_until(search_json_log, filepath=os.path.join(simple_http_installed, DEBUG_LOG_FILE), total_timeout=10,
-                      key='message', value='Starting Simple HTTP service on port: 8888')
-
+@pytest.mark.dependency(name='daemon', depends=['run'])
+def test_daemon(running_daemon):
     r = rsession.get('http://localhost:8888')
     assert 'Welcome to nginx!' in r.text
 
-    result = CliRunner().invoke(cli.main, args=['--iamroot', '--home', simple_http_installed, 'stop', 'simple_http'])
+
+@pytest.mark.dependency(depends=['daemon'])
+def test_status(running_daemon):
+    result = CliRunner().invoke(cli.main, args=['--home', running_daemon, 'status', 'simple_http'])
     assert result.exit_code == 0
     assert not result.exception
+    assert 'simple_http - running' in result.output
+    assert json_log_is_valid(running_daemon)
 
-    try:
-        r = rsession.get('http://localhost:8888')
-        assert False, 'Service is still available (make sure to properly kill it before testing again)'
-    except requests.exceptions.ConnectionError:
-        assert True
+
+@pytest.mark.dependency(depends=['daemon'])
+def test_status_all(running_daemon):
+    result = CliRunner().invoke(cli.main, args=['--home', running_daemon, 'status', '--show-all'])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert 'simple_http - running' in result.output
+    assert json_log_is_valid(running_daemon)
+
+
+@pytest.mark.dependency(depends=['daemon'])
+def test_status_nonexistent(running_daemon):
+    result = CliRunner().invoke(cli.main, args=['--home', running_daemon, 'status', 'nosuchservice'])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert 'nosuchservice - no such service' in result.output
+    assert json_log_is_valid(running_daemon)
+
+
+def test_status_no_service(tmpdir):
+    result = CliRunner().invoke(cli.main, args=['--home', str(tmpdir), 'status'])
+    assert result.exit_code != 0
+    assert result.exception
+    assert 'You must specify a service name' in result.output
+    assert json_log_is_valid(str(tmpdir))
