@@ -19,10 +19,12 @@ import daemon.runner
 import daemon.daemon
 from pythonjsonlogger import jsonlogger
 
-from honeycomb import __version__, honeycomb
+import honeycomb.honeycomb
+from honeycomb import __version__
+from honeycomb.utils import defs
 from honeycomb.utils.cef_handler import CEFSyslogHandler
 
-hc = honeycomb.Honeycomb()
+hc = honeycomb.honeycomb.Honeycomb()
 logger = None
 DEPS_DIR = 'venv'
 GITHUB_URL = 'https://github.com/Cymmetria/honeycomb_services/tree/master/{service}'
@@ -99,8 +101,10 @@ def validate_ip_or_hostname(ctx, param, value):
 
 @main.command()
 @click.pass_context
-@click.argument('service')
+@click.argument('service', nargs=1)
+@click.argument('arg', nargs=-1)
 @click.option('-d', '--daemon', is_flag=True, default=False, help='Run service in daemon mode')
+@click.option('-a', '--args', is_flag=True, default=False, help='Show available service arguments')
 @click.option('-j', '--json-log', type=click.Path(exists=False, dir_okay=False, writable=True, resolve_path=True),
               help='Log alerts in JSON to provided path')
 @click.option('-s', '--syslog', is_flag=True, default=False, help='Enable syslog (CEF) logging for service')
@@ -111,13 +115,29 @@ def validate_ip_or_hostname(ctx, param, value):
 @click.option('-P', '--syslog-protocol', default='udp', type=click.Choice(['tcp', 'udp']),
               help='Syslog protocol (default: udp)')
 @click.option('-v', '--verbose', is_flag=True, default=False, help='Enable verbose logging for service')
-def run(ctx, service, daemon, json_log, syslog, syslog_host, syslog_port, syslog_protocol, verbose):
+def run(ctx, service, arg, args, daemon, json_log, syslog, syslog_host, syslog_port, syslog_protocol, verbose):
     """load and run a specific service"""
+
+    def print_args(service):
+        args = hc.get_parameters(os.path.join(ctx.obj['HOME'], service.name))
+        args_format = '{:15} {:10} {:^15} {:^10} {:25}'
+        title = args_format.format(defs.NAME.upper(), defs.TYPE.upper(), defs.DEFAULT.upper(),
+                                   defs.REQUIRED.upper(), defs.DESCRIPTION.upper())
+        click.secho(title)
+        click.secho("-" * len(title))
+        for arg in args:
+            help_text = " ({}}".format(arg[defs.HELP_TEXT]) if defs.HELP_TEXT in arg else ''
+            click.secho(args_format.format(arg[defs.VALUE], arg[defs.TYPE], str(arg.get(defs.DEFAULT, None)),
+                                           str(arg.get(defs.REQUIRED, False)), arg[defs.LABEL] + help_text))
 
     logger.debug('in command: {}'.format(ctx.command.name))
     logger.debug('loading {}'.format(service))
     click.secho('[+] Loading {}'.format(service))
     service = hc.register_custom_service(os.path.join(ctx.obj['HOME'], service))
+
+    if args:
+        return print_args(service)
+
     if syslog:
         click.secho('[+] Adding syslog handler')
         socktype = socket.SOCK_DGRAM if syslog_protocol == 'udp' else socket.SOCK_STREAM
@@ -141,7 +161,8 @@ def run(ctx, service, daemon, json_log, syslog, syslog_host, syslog_port, syslog
 
     # get our service class instance
     service_module = importlib.import_module(".".join([service.name, service.name + '_service']))
-    service_obj = service_module.service_class()
+    service_args = hc.parse_service_args(arg, hc.get_parameters(os.path.join(ctx.obj['HOME'], service.name)))
+    service_obj = service_module.service_class(service_args=service_args)
 
     # prepare runner
     if daemon:

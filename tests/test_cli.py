@@ -155,8 +155,37 @@ def test_show_nonexistent(tmpdir):
     assert json_log_is_valid(str(tmpdir))
 
 
-@pytest.mark.dependency(name='run', depends=['install_uninstall'])
-@pytest.mark.parametrize('running_service', [['run', 'simple_http']], indirect=['running_service'])
+@pytest.mark.dependency(name='arg_missing', depends=['install_uninstall'])
+def test_missing_arg(simple_http_installed):
+    result = CliRunner().invoke(cli.main, args=['--iamroot', '--home', simple_http_installed, 'run', 'simple_http'])
+    assert result.exit_code != 0
+    assert result.exception
+    assert "'port' is missing" in result.output
+    assert json_log_is_valid(simple_http_installed)
+
+
+@pytest.mark.dependency(name='arg_bad_int', depends=['install_uninstall'])
+def test_arg_bad_int(simple_http_installed):
+    result = CliRunner().invoke(cli.main, args=['--iamroot', '--home', simple_http_installed,
+                                                'run', 'simple_http', 'port=notint'])
+    assert result.exit_code != 0
+    assert result.exception
+    assert 'Bad value for port=notint (must be integer)' in result.output
+    assert json_log_is_valid(simple_http_installed)
+
+
+@pytest.mark.dependency(name='arg_bad_bool', depends=['install_uninstall'])
+def test_arg_bad_bool(simple_http_installed):
+    result = CliRunner().invoke(cli.main, args=['--iamroot', '--home', simple_http_installed,
+                                                'run', 'simple_http', 'port=8888', 'threading=notbool'])
+    assert result.exit_code != 0
+    assert result.exception
+    assert 'Bad value for threading=notbool (must be boolean)' in result.output
+    assert json_log_is_valid(simple_http_installed)
+
+
+@pytest.mark.dependency(name='run', depends=['arg_missing', 'arg_bad_int', 'arg_bad_bool'])
+@pytest.mark.parametrize('running_service', [['run', 'simple_http', 'port=8888']], indirect=['running_service'])
 def test_run(running_service):
     assert wait_until(search_json_log, filepath=os.path.join(running_service, DEBUG_LOG_FILE), total_timeout=10,
                       key='message', value='Starting Simple HTTP service on port: 8888')
@@ -165,8 +194,9 @@ def test_run(running_service):
     assert 'Welcome to nginx!' in r.text
 
 
-@pytest.mark.dependency(depends=['run', 'install_uninstall'])
-@pytest.mark.parametrize('running_service', [['run', 'simple_http', '-j', JSON_LOG_FILE]], indirect=['running_service'])
+@pytest.mark.dependency(depends=['run'])
+@pytest.mark.parametrize('running_service', [['run', '-j', JSON_LOG_FILE, 'simple_http', 'port=8888']],
+                         indirect=['running_service'])
 def test_json_log(running_service):
     assert wait_until(search_json_log, filepath=os.path.join(running_service, DEBUG_LOG_FILE), total_timeout=10,
                       key='message', value='Starting Simple HTTP service on port: 8888')
@@ -179,10 +209,10 @@ def test_json_log(running_service):
     assert json_log['request'] == 'GET /'
 
 
-@pytest.mark.dependency(depends=['run', 'install_uninstall'])
-@pytest.mark.parametrize('running_service', [['run', 'simple_http', '--syslog',
-                                              '--syslog-host', SYSLOG_HOST,
-                                              '--syslog-port', str(SYSLOG_PORT)]], indirect=['running_service'])
+@pytest.mark.dependency(depends=['run'])
+@pytest.mark.parametrize('running_service', [['run', '--syslog', '--syslog-host', SYSLOG_HOST,
+                                              '--syslog-port', str(SYSLOG_PORT), 'simple_http', 'port=8888']],
+                         indirect=['running_service'])
 def test_syslog(running_service, syslog):
     assert wait_until(search_json_log, filepath=os.path.join(running_service, DEBUG_LOG_FILE), total_timeout=10,
                       key='message', value='Starting Simple HTTP service on port: 8888')
@@ -199,9 +229,9 @@ def test_syslog(running_service, syslog):
                       method='find', args='src=127.0.0.1')
 
 
-@pytest.mark.dependency(depends=['run', 'install_uninstall'])
+@pytest.mark.dependency(depends=['run'])
 def test_daemon(simple_http_installed):
-    cmd = [RUN_HONEYCOMB, '--iamroot', '--home', simple_http_installed, 'run', '--daemon', 'simple_http']
+    cmd = [RUN_HONEYCOMB, '--iamroot', '--home', simple_http_installed, 'run', '--daemon', 'simple_http', 'port=8888']
     p = subprocess.Popen(' '.join(cmd), shell=True, env=os.environ.copy())
     p.wait()
     assert p.returncode == 0

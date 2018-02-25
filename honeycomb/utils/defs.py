@@ -40,14 +40,16 @@ ALLOWED_KEYS = [VALUE, DEFAULT, TYPE, FIELD_LABEL, HELP_TEXT, REQUIRED]
 TEXT_TYPE = 'text'
 BOOLEAN_TYPE = 'boolean'
 INTEGER_TYPE = 'integer'
-FILE_TYPE = 'file'
-ALLOWED_TYPES = [TEXT_TYPE, INTEGER_TYPE, BOOLEAN_TYPE, FILE_TYPE]
-PARAMETERS_FIELD_ERROR = "parameters: '{}' is not a valid {}"
-PARAMETERS_DEFAULT_DOESNT_MATCH_TYPE = "parameters: Default value '{}' does not match the field type '{}'"
+ALLOWED_TYPES = [TEXT_TYPE, INTEGER_TYPE, BOOLEAN_TYPE]
+PARAMETERS_FIELD_ERROR = "Parameters: '{}' is not a valid {}"
+PARAMETERS_DEFAULT_DOESNT_MATCH_TYPE = "Parameters: Bad value for {}={} (must be {})"
+PARAMETERS_REQUIRED_FIELD_MISSING = "Parameters: '{}' is missing (use --args to see all parameters)"
 # error_message is also a function to calculate the error when we ran the validator_func
 ConfigField = namedtuple("ConfigField", ["validator_func", "get_error_message"])
 
 ServiceType = namedtuple("ServiceType", [ALLOW_MANY, SUPPORTED_OS_FAMILIES, PORTS, NAME, LABEL, 'alert_types'])
+
+SERVICE_FIELDS_TO_CREATE_OBJECT = [ALLOW_MANY, SUPPORTED_OS_FAMILIES, PORTS, NAME, LABEL]
 
 AlertType = namedtuple("AlertType", ['name', 'label', 'aggregatable', 'system_alert'])
 
@@ -311,8 +313,6 @@ class AlertFields(AbstractDefType):
             cls.PROCESS_LIST.name
         ]
 
-
-SERVICE_FIELDS_TO_CREATE_OBJECT = [ALLOW_MANY, SUPPORTED_OS_FAMILIES, PORTS, NAME, LABEL]
 
 SERVICE_ALERT_VALIDATE_FIELDS = {
     SERVICE_CONFIG_SECTION_KEY: ConfigField(

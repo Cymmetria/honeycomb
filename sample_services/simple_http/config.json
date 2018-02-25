@@ -19,5 +19,27 @@
         "name": "simple_http",
         "label": "Simple HTTP Server",
         "description": "Simple HTTP Server that alerts on every request"
-    }
+    },
+    "parameters": [
+      {
+          "type": "integer",
+          "value": "port",
+          "label": "Listening Port",
+          "required": true
+      },
+      {
+          "type": "text",
+          "value": "version",
+          "label": "Server version (header)",
+          "required": true,
+          "default": "nginx"
+      },
+      {
+          "type": "boolean",
+          "value": "threading",
+          "label": "Enable threading support",
+          "required": true,
+          "default": false
+      }
+    ]
 }

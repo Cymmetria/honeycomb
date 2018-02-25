@@ -20,11 +20,11 @@ class Honeycomb():
     logger = logging.getLogger(CUSTOM_SERVICES)
     alert_types = list()  # list of AlertType (Used only to make sure there are no duplicate alert names)
 
-    def get_custom_fields(self, package, builtin=False):
-        path = os.path.join(self.get_service_folder(package, builtin), CONFIG_FILE_NAME)
-        with open(path, b'r') as f:
+    def get_parameters(self, package_folder):
+        json_config_path = os.path.join(package_folder, CONFIG_FILE_NAME)
+        with open(json_config_path, 'r') as f:
             config = json.load(f)
-        return config.get('parameters', [])
+        return config.get(PARAMETERS, [])
 
     def register_custom_service(self, package_folder):
         json_config_path = os.path.join(package_folder, CONFIG_FILE_NAME)
@@ -59,7 +59,7 @@ class Honeycomb():
             default = field.get(DEFAULT)
             field_type = field.get(TYPE)
             if default:
-                self._validate_default_matches_type(default, field_type)
+                self._validate_field_matches_type(field, default, field_type)
 
     def _create_alert_types_and_policies(self, config_json):
 
@@ -96,12 +96,12 @@ class Honeycomb():
                     CUSTOM_MESSAGE_ERROR_VALIDATION.format(
                         field_name, field_value, validator_obj.get_error_message()))
 
-    def _validate_default_matches_type(self, default, field_type):
-        if (field_type == BOOLEAN_TYPE and not isinstance(default, bool)) or \
-           (field_type == INTEGER_TYPE and not isinstance(default, int)) or \
-           (field_type == TEXT_TYPE and not isinstance(default, six.string_types)):
-            self.logger.debug(PARAMETERS_DEFAULT_DOESNT_MATCH_TYPE.format(default, field_type))
-            raise CustomServiceException(PARAMETERS_DEFAULT_DOESNT_MATCH_TYPE.format(default, field_type))
+    def _validate_field_matches_type(self, field, value, field_type):
+        if (field_type == BOOLEAN_TYPE and not isinstance(value, bool)) or \
+           (field_type == INTEGER_TYPE and not isinstance(value, int)) or \
+           (field_type == TEXT_TYPE and not isinstance(value, six.string_types)):
+            self.logger.debug(PARAMETERS_DEFAULT_DOESNT_MATCH_TYPE.format(field, value, field_type))
+            raise CustomServiceException(PARAMETERS_DEFAULT_DOESNT_MATCH_TYPE.format(field, value, field_type))
 
     def _validate_custom_field(self, field):
         for key, value in field.items():
@@ -113,11 +113,35 @@ class Honeycomb():
                     self.logger.debug(PARAMETERS_FIELD_ERROR.format(value, key))
                     raise CustomServiceException(PARAMETERS_FIELD_ERROR.format(value, key))
             if key == VALUE:
-                if not self.is_valid_field_name(value):
+                if not self._is_valid_field_name(value):
                     self.logger.debug(PARAMETERS_FIELD_ERROR.format(value, "field name"))
                     raise CustomServiceException(PARAMETERS_FIELD_ERROR.format(value, "field name"))
 
-    def is_valid_field_name(self, value):
+    def _get_truetype(self, value):
+        if value in ['true', 'True', 'y', 'Y', 'yes']:
+            return True
+        if value in ['false', 'False', 'n', 'N', 'no']:
+            return False
+        if value.isdigit():
+            return int(value)
+        return str(value)
+
+    def parse_service_args(self, cmdargs, service_args):
+        args = dict()
+        for cmdarg in cmdargs:
+            kv = cmdarg.split('=')
+            args[kv[0]] = self._get_truetype(kv[1])
+        for arg in service_args:
+            field = arg[VALUE]
+            field_type = arg[TYPE]
+            if field in args:
+                self._validate_field_matches_type(field, args[field], field_type)
+            elif arg[REQUIRED] and DEFAULT not in arg:
+                """parameter was not supplied by user, but it's required and has no default value"""
+                raise CustomServiceException(PARAMETERS_REQUIRED_FIELD_MISSING.format(field))
+        return args
+
+    def _is_valid_field_name(self, value):
         leftovers = re.sub(r'\w', '', value)
         leftovers = re.sub(r'-', '', leftovers)
         if leftovers != '' or value[0].isdigit() or value[0] in ['-', '_'] or " " in value:
