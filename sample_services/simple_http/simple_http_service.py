@@ -75,8 +75,8 @@ class SimpleHTTPService(ServerCustomService):
         else:
             self.httpd = HTTPServer(('', port), requestHandler)
 
-        self.logger.info("Starting {}Simple HTTP service on port: {}".format('Threading ' if threading else '', port))
         self.signal_ready()
+        self.logger.info("Starting {}Simple HTTP service on port: {}".format('Threading ' if threading else '', port))
         self.httpd.serve_forever()
 
     def on_server_shutdown(self):
@@ -89,7 +89,7 @@ class SimpleHTTPService(ServerCustomService):
         """trigger service alerts and return a list of triggered event types"""
         event_types = list()
         self.logger.debug('executing service test')
-        requests.get('http://localhost:{}/'.format(self.service_args['port']))
+        requests.get('http://localhost:{}/'.format(self.service_args.get('port', DEFAULT_PORT)))
         event_types.append(SIMPLE_HTTP_ALERT_TYPE_NAME)
 
         return event_types

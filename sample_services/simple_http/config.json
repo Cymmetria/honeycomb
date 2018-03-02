@@ -25,7 +25,8 @@
           "type": "integer",
           "value": "port",
           "label": "Listening Port",
-          "required": true
+          "required": true,
+          "default": 8888
       },
       {
           "type": "text",
