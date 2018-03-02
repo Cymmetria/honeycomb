@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 import time
-import subprocess
+import logging
 import threading
+import subprocess
+
+logger = logging.getLogger(__name__)
 
 
 class TimeoutCommand(object):
@@ -11,6 +14,7 @@ class TimeoutCommand(object):
 
     def run(self, timeout):
         def target():
+            logger.debug('starting process: {}'.format(self.cmd))
             self.process = subprocess.Popen(self.cmd, shell=True)
             self.process.communicate()
 
@@ -19,6 +23,7 @@ class TimeoutCommand(object):
 
         thread.join(timeout)
         if thread.is_alive():
+            logger.debug('terminating process: {}'.format(self.process))
             self.process.terminate()
             thread.join()
             raise TimeoutException
@@ -47,6 +52,7 @@ def wait_until(func,
     while time.time() - start_function < total_timeout:
 
         try:
+            logger.debug('executing {} with args {} {}'.format(func, args, kwargs))
             return_value = func(*args, **kwargs)
             if not check_return_value or (check_return_value and return_value):
                 return return_value

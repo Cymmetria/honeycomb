@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import os
 import sys
 import pip
+import json
 import ctypes
 import shutil
 import socket
@@ -22,6 +23,7 @@ from pythonjsonlogger import jsonlogger
 import honeycomb.honeycomb
 from honeycomb import __version__
 from honeycomb.utils import defs
+from honeycomb.utils.wait import wait_until
 from honeycomb.utils.cef_handler import CEFSyslogHandler
 
 hc = honeycomb.honeycomb.Honeycomb()
@@ -73,7 +75,7 @@ def main(ctx, home, iamroot, verbose):
     logger = setup_logging(home, verbose)
 
     logger.debug('Starting up Honeycomb v{}'.format(__version__))
-    logger.debug('in command: {}'.format(ctx.command.name))
+    logger.debug('in command: {} {}'.format(ctx.command.name, ctx.params))
 
     try:
         is_admin = os.getuid() == 0
@@ -105,6 +107,8 @@ def validate_ip_or_hostname(ctx, param, value):
 @click.argument('service', nargs=1)
 @click.argument('arg', nargs=-1)
 @click.option('-d', '--daemon', is_flag=True, default=False, help='Run service in daemon mode')
+@click.option('-e', '--editable', is_flag=True, default=False,
+              help='Run service directly from spefified path (main for dev)')
 @click.option('-a', '--args', is_flag=True, default=False, help='Show available service arguments')
 @click.option('-j', '--json-log', type=click.Path(exists=False, dir_okay=False, writable=True, resolve_path=True),
               help='Log alerts in JSON to provided path')
@@ -116,11 +120,18 @@ def validate_ip_or_hostname(ctx, param, value):
 @click.option('-P', '--syslog-protocol', default='udp', type=click.Choice(['tcp', 'udp']),
               help='Syslog protocol (default: udp)')
 @click.option('-v', '--verbose', is_flag=True, default=False, help='Enable verbose logging for service')
-def run(ctx, service, arg, args, daemon, json_log, syslog, syslog_host, syslog_port, syslog_protocol, verbose):
+def run(ctx, service, arg, args, daemon, editable, json_log,
+        syslog, syslog_host, syslog_port, syslog_protocol, verbose):
     """load and run a specific service"""
+    home = ctx.obj['HOME']
+    if editable:
+        service_path = os.path.realpath(service)
+    else:
+        service_path = os.path.join(home, service)
+    service_log_path = os.path.join(service_path, 'logs')
 
     def print_args(service):
-        args = hc.get_parameters(os.path.join(ctx.obj['HOME'], service.name))
+        args = hc.get_parameters(service_path)
         args_format = '{:15} {:10} {:^15} {:^10} {:25}'
         title = args_format.format(defs.NAME.upper(), defs.TYPE.upper(), defs.DEFAULT.upper(),
                                    defs.REQUIRED.upper(), defs.DESCRIPTION.upper())
@@ -131,10 +142,10 @@ def run(ctx, service, arg, args, daemon, json_log, syslog, syslog_host, syslog_p
             click.secho(args_format.format(arg[defs.VALUE], arg[defs.TYPE], str(arg.get(defs.DEFAULT, None)),
                                            str(arg.get(defs.REQUIRED, False)), arg[defs.LABEL] + help_text))
 
-    logger.debug('in command: {}'.format(ctx.command.name))
-    logger.debug('loading {}'.format(service))
+    logger.debug('in command: {} {}'.format(ctx.command.name, ctx.params))
+    logger.debug('loading {} ({})'.format(service, service_path))
     click.secho('[+] Loading {}'.format(service))
-    service = hc.register_custom_service(os.path.join(ctx.obj['HOME'], service))
+    service = hc.register_custom_service(service_path)
 
     if args:
         return print_args(service)
@@ -155,22 +166,20 @@ def run(ctx, service, arg, args, daemon, json_log, syslog, syslog_host, syslog_p
         json_handler.setFormatter(json_formatter)
         logging.getLogger().addHandler(json_handler)
 
-    # add custom paths so imports would work
-    sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-    sys.path.insert(0, os.path.join(ctx.obj['HOME'], service.name, DEPS_DIR))
-    sys.path.insert(0, ctx.obj['HOME'])
-
     # get our service class instance
-    service_module = importlib.import_module(".".join([service.name, service.name + '_service']))
-    service_args = hc.parse_service_args(arg, hc.get_parameters(os.path.join(ctx.obj['HOME'], service.name)))
+    service_module = get_service_module(service_path, service.name)
+    service_args = hc.parse_service_args(arg, hc.get_parameters(service_path))
     service_obj = service_module.service_class(service_args=service_args)
+
+    if not os.path.exists(service_log_path):
+        os.mkdir(service_log_path)
 
     # prepare runner
     if daemon:
         runner = myRunner(service_obj,
-                          pidfile=os.path.join(ctx.obj['HOME'], service.name + '.pid'),
-                          stdout=open(os.path.join(ctx.obj['HOME'], service.name, 'stdout.log'), 'ab'),
-                          stderr=open(os.path.join(ctx.obj['HOME'], service.name, 'stderr.log'), 'ab'))
+                          pidfile=service_path + '.pid',
+                          stdout=open(os.path.join(service_log_path, 'stdout.log'), 'ab'),
+                          stderr=open(os.path.join(service_log_path, 'stderr.log'), 'ab'))
 
         files_preserve = []
         for handler in logging.getLogger().handlers:
@@ -184,6 +193,9 @@ def run(ctx, service, arg, args, daemon, json_log, syslog, syslog_host, syslog_p
 
     click.secho('[+] Launching {} {}'.format(service.name, 'in daemon mode' if daemon else ''))
     try:
+        # save service_args for external reference (see test)
+        with open(os.path.join(home, service.name + '.args.json'), 'w') as f:
+            f.write(json.dumps(service_args))
         runner._start() if daemon else service_obj.run()
     except KeyboardInterrupt:
         service_obj._on_server_shutdown()
@@ -196,31 +208,28 @@ def run(ctx, service, arg, args, daemon, json_log, syslog, syslog_host, syslog_p
 @click.argument('service')
 def stop(ctx, service):
     """stop a running service daemon"""
-    logger.debug('in command: {}'.format(ctx.command.name))
-    logger.debug('loading {}'.format(service))
-    service = hc.register_custom_service(os.path.join(ctx.obj['HOME'], service))
+    logger.debug('in command: {} {}'.format(ctx.command.name, ctx.params))
+    home = ctx.obj['HOME']
 
-    # add custom paths so imports would work
-    sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-    sys.path.insert(0, os.path.join(ctx.obj['HOME'], service.name, DEPS_DIR))
-    sys.path.insert(0, ctx.obj['HOME'])
+    logger.debug('loading {}'.format(service))
+    service = hc.register_custom_service(os.path.join(home, service))
 
     # get our service class instance
-    service_module = importlib.import_module(".".join([service.name, service.name + '_service']))
+    service_module = get_service_module(home, service.name)
     service_obj = service_module.service_class()
 
     # prepare runner
     runner = myRunner(service_obj,
-                      pidfile=os.path.join(ctx.obj['HOME'], service.name + '.pid'),
-                      stdout=open(os.path.join(ctx.obj['HOME'], service.name, 'stdout.log'), 'ab'),
-                      stderr=open(os.path.join(ctx.obj['HOME'], service.name, 'stderr.log'), 'ab'))
+                      pidfile=os.path.join(home, service.name + '.pid'),
+                      stdout=open(os.path.join(home, service.name, 'stdout.log'), 'ab'),
+                      stderr=open(os.path.join(home, service.name, 'stderr.log'), 'ab'))
 
     click.secho('[*] Stopping {}'.format(service.name))
     try:
         runner._stop()
     except daemon.runner.DaemonRunnerStopFailureError as e:
         logger.debug(str(e))
-        click.ClickException('Unable to stop service, are you sure it is running?')
+        raise click.ClickException('Unable to stop service, are you sure it is running?')
 
 
 @main.command(short_help='List available services')
@@ -231,7 +240,7 @@ def list(ctx, remote):
         shows the contents of the local repository including versions
         optionally also lists all available package in online repository
     """
-    logger.debug('in command: {}'.format(ctx.command.name))
+    logger.debug('in command: {} {}'.format(ctx.command.name, ctx.params))
     installed_services = []
     click.secho('[*] Installed services:')
     service = None
@@ -257,7 +266,7 @@ def list(ctx, remote):
             click.secho(r.text)
 
         except requests.exceptions.ConnectionError:
-            click.ClickException('Unable to fetch information from online repository')
+            raise click.ClickException('Unable to fetch information from online repository')
     else:
         click.secho('\n[*] try running `honeycomb list -r` to see services available from our repository')
 
@@ -268,7 +277,7 @@ def list(ctx, remote):
 @click.option('-a', '--show-all', is_flag=True, default=False, help='Show status for all services')
 def status(ctx, services, show_all):
     """shows status of installed service(s)"""
-    logger.debug('in command: {}'.format(ctx.command.name))
+    logger.debug('in command: {} {}'.format(ctx.command.name, ctx.params))
 
     def print_status(service):
         service_dir = os.path.join(ctx.obj['HOME'], service)
@@ -304,7 +313,7 @@ def status(ctx, services, show_all):
 @click.option('-r', '--remote', is_flag=True, default=False, help='Show information only from remote repository')
 def show(ctx, pkg, remote):
     """shows detailed information about a package"""
-    logger.debug('in command: {}'.format(ctx.command.name))
+    logger.debug('in command: {} {}'.format(ctx.command.name, ctx.params))
 
     def collect_local_info(pkg, pkgpath):
         logger.debug('loading {} from {}'.format(pkg, pkgpath))
@@ -371,7 +380,8 @@ def show(ctx, pkg, remote):
 @click.argument('pkgs', nargs=-1)
 def install(ctx, pkgs, delete_after_install=False):
     """get a particular honeypot from the online library or install from local directory or zipfile"""
-    logger.debug('in command: {}'.format(ctx.command.name))
+    logger.debug('in command: {} {}'.format(ctx.command.name, ctx.params))
+    home = ctx.obj['HOME']
     # TODO:
     # handle package name exists in HOME (upgrade? overwrite?)
 
@@ -388,13 +398,13 @@ def install(ctx, pkgs, delete_after_install=False):
     def install_dir(ctx, pkgpath, delete_after_install):
         logger.debug('{} is a directory, attempting to validate'.format(pkgpath))
         service = hc.register_custom_service(pkgpath)
-        logger.debug('{} looks good, copying to {}'.format(pkgpath, ctx.obj['HOME']))
+        logger.debug('{} looks good, copying to {}'.format(pkgpath, home))
         try:
-            shutil.copytree(pkgpath, os.path.join(ctx.obj['HOME'], service.name))
+            shutil.copytree(pkgpath, os.path.join(home, service.name))
             if delete_after_install:
                 logger.debug('deleting {}'.format(pkgpath))
                 shutil.rmtree(pkgpath)
-            pkgpath = os.path.join(ctx.obj['HOME'], service.name)
+            pkgpath = os.path.join(home, service.name)
         except OSError as e:
             logger.exception(str(e))
             raise click.ClickException('Sorry, already have a service called {}, try deleting it first.'
@@ -437,10 +447,10 @@ def install(ctx, pkgs, delete_after_install=False):
             return install_from_zip(ctx, f.name, delete_after_install=True)
         except requests.exceptions.HTTPError as e:
             logger.debug(str(e))
-            click.ClickException('[-] Cannot find {} in online repository'.format(pkgname))
+            raise click.ClickException('[-] Cannot find {} in online repository'.format(pkgname))
         except requests.exceptions.ConnectionError as e:
             logger.debug(str(e))
-            click.ClickException('[-] Unable to access online repository'.format(pkgname))
+            raise click.ClickException('[-] Unable to access online repository'.format(pkgname))
 
     for pkgpath in pkgs:
         if os.path.exists(pkgpath):
@@ -467,10 +477,11 @@ def install(ctx, pkgs, delete_after_install=False):
 @click.argument('pkgs', nargs=-1)
 def uninstall(ctx, yes, pkgs):
     """Uninstall a service"""
-    logger.debug('in command: {}'.format(ctx.command.name))
+    logger.debug('in command: {} {}'.format(ctx.command.name, ctx.params))
+    home = ctx.obj['HOME']
 
     for pkgname in pkgs:
-        pkgpath = os.path.join(ctx.obj['HOME'], pkgname)
+        pkgpath = os.path.join(home, pkgname)
         if os.path.exists(pkgpath):
             if not yes:
                 click.confirm('[?] Are you sure you want to delete service `{}` from honeycomb?'.format(pkgname),
@@ -483,6 +494,81 @@ def uninstall(ctx, yes, pkgs):
                 logger.exception(str(e))
         else:
             click.secho('[-] doh! I cannot seem to find `{}`, are you sure it\'s installed?'.format(pkgname))
+
+
+@main.command(short_help='Test a running service')
+@click.pass_context
+@click.argument('services', nargs=-1)
+@click.option('-f', '--force', is_flag=True, default=False, help='Do not check if service is running before testing')
+@click.option('-e', '--editable', is_flag=True, default=False,
+              help='Run service directly from spefified path (main for dev)')
+def test(ctx, services, force, editable):
+    """
+    execute the service's internal test method to verify it's working as intended
+    if there's no such method, honeycomb will attempt to connect to the port listed in config.json
+    """
+    logger.debug('in command: {} {}'.format(ctx.command.name, ctx.params))
+    home = ctx.obj['HOME']
+
+    for service in services:
+        if editable:
+            service_path = os.path.realpath(service)
+        else:
+            service_path = os.path.join(home, service)
+
+        logger.debug('loading {} ({})'.format(service, service_path))
+        click.secho('[+] Loading {}'.format(service))
+        service = hc.register_custom_service(service_path)
+        service_module = get_service_module(service_path, service.name)
+
+        if not force:
+            if os.path.exists(service_path):
+                pidfile = service_path + '.pid'
+                if os.path.exists(pidfile):
+                    try:
+                        with open(pidfile) as fh:
+                            pid = int(fh.read().strip())
+                        os.kill(pid, 0)
+                        logger.debug('service is running (pid: {})'.format(pid))
+                    except OSError:
+                        logger.debug('service is not running (stale pidfile, pid: {})'.format(pid))
+                        raise click.ClickException('Unable to test {} because it is not running'.format(service.name))
+                else:
+                    logger.debug('service is not running (no pidfile)')
+                    raise click.ClickException('Unable to test {} because it is not running'.format(service.name))
+
+        try:
+            with open(os.path.join(home, service.name + '.args.json')) as f:
+                service_args = json.loads(f.read())
+        except IOError:
+            raise click.ClickException('Cannot load service args, are you sure server is running?')
+        logger.debug('loading service {} with args {}'.format(service, service_args))
+        service_obj = service_module.service_class(service_args=service_args)
+        logger.debug('loaded service {}'.format(service_obj))
+
+        if hasattr(service_obj, 'test'):
+            click.secho('[+] Executing internal test method for service')
+            logger.debug('executing internal test method for service')
+            event_types = service_obj.test()
+            for event_type in event_types:
+                assert wait_until(search_json_log, filepath=os.path.join(home, defs.DEBUG_LOG_FILE),
+                                  total_timeout=10, key=defs.EVENT_TYPE, value=event_type), ''
+                'failed to test alert: {}'.format(event_type)
+
+                click.secho('{} alert tested succesfully'.format(event_type))
+
+        elif hasattr(service, 'ports') and len(service.ports) > 0:
+            click.secho('[+] No internal test method found, only testing ports are open')
+            logger.debug('no internal test method found, testing ports: {}'.format(service.ports))
+            for port in service.ports:
+                socktype = socket.SOCK_DGRAM if port['protocol'] == 'udp' else socket.SOCK_STREAM
+                s = socket.socket(socket.AF_INET, socktype)
+                try:
+                    s.connect(('127.0.0.1', port['port']))
+                    s.Shutdown(2)
+                except Exception as e:
+                    logger.debug(str(e), exc_info=e)
+                    raise click.ClickException('Unable to connect to service port {}'.format(port['port']))
 
 
 @main.command()
@@ -522,7 +608,7 @@ def setup_logging(home, verbose):
             "file": {
                 "level": "DEBUG",
                 "class": "logging.handlers.WatchedFileHandler",
-                "filename": os.path.join(home, 'honeycomb.debug.log'),
+                "filename": os.path.join(home, defs.DEBUG_LOG_FILE),
                 "formatter": "json",
             },
         },
@@ -555,3 +641,22 @@ def sizeof_fmt(num, suffix='B'):
             return "%3.1f%s%s" % (num, unit, suffix)
         num /= 1024.0
     return "%.1f%s%s".format(num, 'Yi', suffix)
+
+
+def get_service_module(service_path, service_name):
+    # add custom paths so imports would work
+    sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+    sys.path.insert(0, os.path.join(service_path, DEPS_DIR))
+    sys.path.insert(0, os.path.join(service_path, '..'))
+
+    # get our service class instance
+    return importlib.import_module(".".join([service_name, service_name + '_service']))
+
+
+def search_json_log(filepath, key, value):
+    with open(filepath, 'r') as fh:
+        for line in fh.readlines():
+                log = json.loads(line)
+                if key in log and log[key] == value:
+                    return log
+        return False

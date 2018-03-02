@@ -10,13 +10,15 @@ class ServerCustomService(Process):
     logger.setLevel(logging.DEBUG)
 
     service_args = None
+    ready = False
 
     def __init__(self, service_args=None, *args, **kwargs):
         super(ServerCustomService, self).__init__(*args, **kwargs)
         self.service_args = service_args
 
     def signal_ready(self):
-        pass
+        self.ready = True
+        self.logger.debug('service is ready')
 
     def on_server_start(self):
         """

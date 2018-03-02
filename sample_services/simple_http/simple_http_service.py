@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 import os
 
-from base_service import ServerCustomService
-
+import requests
 from six.moves.socketserver import ThreadingMixIn
 from six.moves.BaseHTTPServer import HTTPServer
 from six.moves.SimpleHTTPServer import SimpleHTTPRequestHandler
 
+from base_service import ServerCustomService
 
 DEFAULT_PORT = 8888
 EVENT_TYPE_FIELD_NAME = 'event_type'
-DEFAULT_SERVER_VERSION = 'nginx'
 SIMPLE_HTTP_ALERT_TYPE_NAME = 'simple_http'
 ORIGINATING_IP_FIELD_NAME = 'originating_ip'
 ORIGINATING_PORT_FIELD_NAME = 'originating_port'
 REQUEST_FIELD_NAME = 'request'
+DEFAULT_SERVER_VERSION = 'nginx'
 
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
@@ -75,8 +75,8 @@ class SimpleHTTPService(ServerCustomService):
         else:
             self.httpd = HTTPServer(('', port), requestHandler)
 
-        self.signal_ready()
         self.logger.info("Starting {}Simple HTTP service on port: {}".format('Threading ' if threading else '', port))
+        self.signal_ready()
         self.httpd.serve_forever()
 
     def on_server_shutdown(self):
@@ -84,6 +84,15 @@ class SimpleHTTPService(ServerCustomService):
             self.httpd.shutdown()
             self.logger.info("Simple HTTP service stopped")
             self.httpd = None
+
+    def test(self):
+        """trigger service alerts and return a list of triggered event types"""
+        event_types = list()
+        self.logger.debug('executing service test')
+        requests.get('http://localhost:{}/'.format(self.service_args['port']))
+        event_types.append(SIMPLE_HTTP_ALERT_TYPE_NAME)
+
+        return event_types
 
     def __str__(self):
         return "Simple HTTP"

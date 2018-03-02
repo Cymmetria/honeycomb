@@ -4,6 +4,7 @@ from collections import namedtuple
 import six
 
 CUSTOM_SERVICES = "custom_services"
+DEBUG_LOG_FILE = 'honeycomb.debug.log'
 
 LABEL = "label"
 FIELDS = "fields"
@@ -24,6 +25,7 @@ CUSTOM_MESSAGE_ERROR_VALIDATION = "Failed to import config. error in field {} wi
 
 SERVICE_CONFIG_SECTION_KEY = "service"
 ALERT_CONFIG_SECTION_KEY = "event_types"
+EVENT_TYPE = 'event_type'
 CONFIG_FILE_NAME = "config.json"
 PARAMETERS = "parameters"
 MISSING_FILE_ERROR = "Missing {} file"
