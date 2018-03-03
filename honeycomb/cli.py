@@ -565,7 +565,7 @@ def test(ctx, services, force, editable):
                 s = socket.socket(socket.AF_INET, socktype)
                 try:
                     s.connect(('127.0.0.1', port['port']))
-                    s.Shutdown(2)
+                    s.shutdown(2)
                 except Exception as e:
                     logger.debug(str(e), exc_info=e)
                     raise click.ClickException('Unable to connect to service port {}'.format(port['port']))
