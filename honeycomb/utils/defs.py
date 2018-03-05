@@ -1,11 +1,30 @@
 # -*- coding: utf-8 -*-
 """Hooneycomb defs and constants."""
+import os
+import sys
+import importlib
 from collections import namedtuple
 
 import six
 
+
+def _get_service_module(service_path, service_name):
+    # add custom paths so imports would work
+    sys.path.insert(0, os.path.dirname(os.path.realpath(os.path.join(__file__, '..'))))
+    sys.path.insert(0, os.path.realpath(os.path.join(service_path, DEPS_DIR)))
+    sys.path.insert(0, os.path.realpath(os.path.join(service_path, '..')))
+
+    # get our service class instance
+    return importlib.import_module(".".join([service_name, service_name + '_service']))
+
+
 CUSTOM_SERVICES = "custom_services"
 DEBUG_LOG_FILE = 'honeycomb.debug.log'
+DEPS_DIR = 'venv'
+
+GITHUB_URL = 'https://github.com/Cymmetria/honeycomb_services/tree/master/{service}'
+GITHUB_RAW = 'https://cymmetria.github.io/honeycomb_services/'
+GITHUB_RAW_URL = 'https://raw.githubusercontent.com/Cymmetria/honeycomb_services/master/{service}/{filename}'
 
 LABEL = "label"
 FIELDS = "fields"

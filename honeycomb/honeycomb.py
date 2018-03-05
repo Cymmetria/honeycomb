@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Honeycomb Service Manager."""
-from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import os
 import re
@@ -146,6 +146,8 @@ class Honeycomb():
         args = dict()
         for cmdarg in cmdargs:
             kv = cmdarg.split('=')
+            if len(kv) != 2:
+                raise click.ClickException('Invalid parameter "{}", must be in key=value format'.format(cmdarg))
             args[kv[0]] = self._get_truetype(kv[1])
         for arg in service_args:
             field = arg[VALUE]

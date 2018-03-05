@@ -1,4 +1,5 @@
-"""Honeycomb main.
+# -*- coding: utf-8 -*-
+"""Honeycomb main entry point.
 
 This file allows runnign honeycomb as a module directly without calling a method
 .. code-block:: bash
@@ -8,7 +9,13 @@ from __future__ import absolute_import
 
 import sys
 
-from honeycomb import cli
+from .cli import cli
+
+
+def main():
+    """Provide an entry point for setup.py console_scripts."""
+    return sys.exit(cli())
+
 
 if __name__ == '__main__':
-    sys.exit(cli.main())
+    main()
