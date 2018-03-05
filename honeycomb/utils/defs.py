@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Hooneycomb defs and constants."""
 from collections import namedtuple
 
 import six
@@ -57,11 +58,15 @@ AlertType = namedtuple("AlertType", ['name', 'label', 'aggregatable', 'system_al
 
 
 class AbstractDefTypeMeta(type):
-    def __getitem__(mcs, name):
-        return mcs.get_value_by_name(name)
+    """AbstractDefTypeMeta."""
+
+    def __getitem__(self, name):
+        """Override __getitem__ to use get_value_by_name."""
+        return self.get_value_by_name(name)
 
 
 def isnamedtupleinstance(x):
+    """Check for named tuples instances."""
     t = type(x)
     b = t.__bases__
     if len(b) != 1 or b[0] != tuple:
@@ -73,10 +78,13 @@ def isnamedtupleinstance(x):
 
 
 class AbstractDefType(object):
+    """AbstractDefType."""
+
     __metaclass__ = AbstractDefTypeMeta
 
     @classmethod
     def get_items(self, **kwargs):
+        """get_items."""
         items = [
             (key, value) for key, value in self.__dict__.items()
             if isnamedtupleinstance(value)
@@ -95,14 +103,17 @@ class AbstractDefType(object):
 
     @classmethod
     def get_keys(self, **kwargs):
+        """get_keys."""
         return [key for key, value in self.get_items(**kwargs)]
 
     @classmethod
     def get_values(self, **kwargs):
+        """get_values."""
         return [value for _, value in self.get_items(**kwargs)]
 
     @classmethod
     def get_choices(self, name_key, label_key, **kwargs):
+        """get_choices."""
         items = self.get_items(**kwargs)
         items.sort(key=lambda x: x[0])
         return tuple([
@@ -111,10 +122,12 @@ class AbstractDefType(object):
 
     @classmethod
     def get_default_choices(self, **kwargs):
+        """get_default_choices."""
         return self.get_choices("name", "label", **kwargs)
 
     @classmethod
     def get_value_by_other_value(self, value_name, value_value, value_to_get, **kwargs):
+        """get_value_by_other_value."""
         for value in self.get_values(**kwargs):
             if getattr(value, value_name) == value_value:
                 if value_to_get is None:
@@ -124,38 +137,46 @@ class AbstractDefType(object):
 
     @classmethod
     def get_values_by_other_value(self, value_name, value_value, value_to_get, **kwargs):
+        """get_values_by_other_value."""
         return [getattr(value, value_to_get)
                 for value in self.get_values(**kwargs)
                 if getattr(value, value_name) == value_value]
 
     @classmethod
     def get_value_by_name(self, name, **kwargs):
+        """get_value_by_name."""
         return self.get_value_by_other_value("name", name, None, **kwargs)
 
     @classmethod
     def get_label_by_name(self, name, **kwargs):
+        """get_label_by_name."""
         return self.get_value_by_name(name, **kwargs).label
 
     @classmethod
     def does_value_value_exist(self, value_name, value_value, **kwargs):
+        """does_value_value_exist."""
         return value_value in [getattr(value, value_name) for value in self.get_values(**kwargs)]
 
     @classmethod
     def does_value_exist_for_name(self, value_value, **kwargs):
+        """does_value_exist_for_name."""
         return self.does_value_value_exist("name", value_value, **kwargs)
 
     @classmethod
     def get_value_names(self, **kwargs):
+        """get_value_names."""
         return [value.name for value in self.get_values(**kwargs)]
 
     @classmethod
     def get_namedtuple_by_value(self, value_name, value_value, **kwargs):
+        """get_namedtuple_by_value."""
         for value in self.get_values(**kwargs):
             if getattr(value, value_name) == value_value:
                 return value
 
     @classmethod
     def filter_by_label(self, contained_keywords):
+        """filter_by_label."""
         return [
             value
             for value
@@ -168,12 +189,15 @@ DecoyOSFamily = namedtuple("DecoyOsFamily", ['name', 'label', 'mount_base_dir', 
 
 
 class DecoyOSFamilies(AbstractDefType):
+    """DecoyOSFamilies, used in config.json."""
+
     LINUX = DecoyOSFamily('Linux', 'Linux', 'home/user2/deployment', 1, 'ubuntu.png')
     WINDOWS = DecoyOSFamily('Windows', 'Windows', 'deployment', 74, 'windows.png')
     ALL = DecoyOSFamily('All', 'All', None, None, None)
 
     @classmethod
     def all_families_name(self):
+        """all_families_name."""
         return self.get_value_names()
 
 
@@ -205,6 +229,8 @@ CEFCustomString = namedtuple("CEFCustomString", ["field_name", "field_label", "f
 
 
 class AlertFields(AbstractDefType):
+    """All available alert fields."""
+
     ID = AlertField('id', None, None, 'Alert ID', False, None, None, 'externalId')
     ATTACK_STORY_ID = AlertField('attack_story_id', None, None, 'Attack story ID', False, None, None, None)
     ATTACK_STORY = AlertField('attack_story', None, None, 'Attack story', False, None, None, None)
@@ -286,26 +312,32 @@ class AlertFields(AbstractDefType):
 
     @classmethod
     def get_is_link_by_name(cls, field_name):
+        """get_is_link_by_name."""
         return cls.get_value_by_name(field_name).is_link
 
     @classmethod
     def get_url_name_by_name(cls, field_name):
+        """get_url_name_by_name."""
         return cls.get_value_by_name(field_name).url_name
 
     @classmethod
     def get_link_display_value_by_name(cls, field_name):
+        """get_link_display_value_by_name."""
         return cls.get_value_by_name(field_name).link_display_value
 
     @classmethod
     def get_sub_name_by_name(cls, field_name):
+        """get_sub_name_by_name."""
         return cls.get_value_by_name(field_name).sub_name
 
     @classmethod
     def get_main_name_by_name(cls, field_name):
+        """get_main_name_by_name."""
         return cls.get_value_by_name(field_name).main_name
 
     @classmethod
     def get_file_field_names(cls):
+        """get_file_field_names."""
         return [
             cls.NET_CAPTURE.name,
             cls.SESSION_VIDEO.name,

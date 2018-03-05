@@ -1,2 +1,4 @@
 tox
+sphinx
+sphinx_click
 -r requirements.txt

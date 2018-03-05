@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Honeycomb Command Line Interface."""
 from __future__ import absolute_import
 
 import os
@@ -23,7 +24,7 @@ from pythonjsonlogger import jsonlogger
 import honeycomb.honeycomb
 from honeycomb import __version__
 from honeycomb.utils import defs
-from honeycomb.utils.wait import wait_until
+from honeycomb.utils.wait import wait_until, search_json_log
 from honeycomb.utils.cef_handler import CEFSyslogHandler
 
 hc = honeycomb.honeycomb.Honeycomb()
@@ -48,8 +49,15 @@ CONTEXT_SETTINGS = dict(
 
 
 class myRunner(daemon.runner.DaemonRunner):
-    """overriding default runner behaviour to be simpler"""
+    """Overriding default runner behaviour to be simpler."""
+
     def __init__(self, app, pidfile=None, stdout=sys.stdout, stderr=sys.stderr, stdin=open('/dev/null', 'rt')):
+        """
+        Override init to fit honeycomb needs.
+
+        We initialize app with default stdout/stderr from sys instead of file path
+        and remove the use of parse_args() since it's not actually a standalone runner
+        """
         self.app = app
         self.daemon_context = daemon.daemon.DaemonContext()
         self.daemon_context.stdin = stdin
@@ -69,9 +77,9 @@ class myRunner(daemon.runner.DaemonRunner):
 @click.option('--iamroot', is_flag=True, default=False, help='Force run as root (NOT RECOMMENDED!)')
 @click.option('--verbose', '-v', envvar="DEBUG", is_flag=True, default=False, help='Enable verbose logging')
 def main(ctx, home, iamroot, verbose):
-    """Homeycomb is a honeypot framework"""
+    """Homeycomb is a honeypot framework."""
     global logger
-    mkhome(home)
+    _mkhome(home)
     logger = setup_logging(home, verbose)
 
     logger.debug('Starting up Honeycomb v{}'.format(__version__))
@@ -95,6 +103,7 @@ def main(ctx, home, iamroot, verbose):
 
 
 def validate_ip_or_hostname(ctx, param, value):
+    """IP/Host parameter validator."""
     try:
         socket.gethostbyname(value)
         return value
@@ -122,7 +131,7 @@ def validate_ip_or_hostname(ctx, param, value):
 @click.option('-v', '--verbose', is_flag=True, default=False, help='Enable verbose logging for service')
 def run(ctx, service, arg, args, daemon, editable, json_log,
         syslog, syslog_host, syslog_port, syslog_protocol, verbose):
-    """load and run a specific service"""
+    """Load and run a specific service."""
     home = ctx.obj['HOME']
     if editable:
         service_path = os.path.realpath(service)
@@ -131,7 +140,7 @@ def run(ctx, service, arg, args, daemon, editable, json_log,
     service_log_path = os.path.join(service_path, 'logs')
 
     def print_args(service):
-        args = hc.get_parameters(service_path)
+        args = hc._get_parameters(service_path)
         args_format = '{:15} {:10} {:^15} {:^10} {:25}'
         title = args_format.format(defs.NAME.upper(), defs.TYPE.upper(), defs.DEFAULT.upper(),
                                    defs.REQUIRED.upper(), defs.DESCRIPTION.upper())
@@ -167,7 +176,7 @@ def run(ctx, service, arg, args, daemon, editable, json_log,
         logging.getLogger().addHandler(json_handler)
 
     # get our service class instance
-    service_module = get_service_module(service_path, service.name)
+    service_module = _get_service_module(service_path, service.name)
     service_args = hc.parse_service_args(arg, hc.get_parameters(service_path))
     service_obj = service_module.service_class(service_args=service_args)
 
@@ -207,7 +216,7 @@ def run(ctx, service, arg, args, daemon, editable, json_log,
 @click.pass_context
 @click.argument('service')
 def stop(ctx, service):
-    """stop a running service daemon"""
+    """Stop a running service daemon."""
     logger.debug('in command: {} {}'.format(ctx.command.name, ctx.params))
     home = ctx.obj['HOME']
 
@@ -215,7 +224,7 @@ def stop(ctx, service):
     service = hc.register_custom_service(os.path.join(home, service))
 
     # get our service class instance
-    service_module = get_service_module(home, service.name)
+    service_module = _get_service_module(home, service.name)
     service_obj = service_module.service_class()
 
     # prepare runner
@@ -236,10 +245,7 @@ def stop(ctx, service):
 @click.pass_context
 @click.option('-r', '--remote', is_flag=True, default=False, help='Include available services from online repository')
 def list(ctx, remote):
-    """
-        shows the contents of the local repository including versions
-        optionally also lists all available package in online repository
-    """
+    """Show information about a honeycomb service."""
     logger.debug('in command: {} {}'.format(ctx.command.name, ctx.params))
     installed_services = []
     click.secho('[*] Installed services:')
@@ -276,7 +282,7 @@ def list(ctx, remote):
 @click.argument('services', nargs=-1)
 @click.option('-a', '--show-all', is_flag=True, default=False, help='Show status for all services')
 def status(ctx, services, show_all):
-    """shows status of installed service(s)"""
+    """Show status of installed service(s)."""
     logger.debug('in command: {} {}'.format(ctx.command.name, ctx.params))
 
     def print_status(service):
@@ -312,7 +318,7 @@ def status(ctx, services, show_all):
 @click.argument('pkg')
 @click.option('-r', '--remote', is_flag=True, default=False, help='Show information only from remote repository')
 def show(ctx, pkg, remote):
-    """shows detailed information about a package"""
+    """Show detailed information about a package."""
     logger.debug('in command: {} {}'.format(ctx.command.name, ctx.params))
 
     def collect_local_info(pkg, pkgpath):
@@ -379,7 +385,7 @@ def show(ctx, pkg, remote):
 @click.pass_context
 @click.argument('pkgs', nargs=-1)
 def install(ctx, pkgs, delete_after_install=False):
-    """get a particular honeypot from the online library or install from local directory or zipfile"""
+    """Install a honeypot service from the online library, local path or zipfile."""
     logger.debug('in command: {} {}'.format(ctx.command.name, ctx.params))
     home = ctx.obj['HOME']
     # TODO:
@@ -434,7 +440,7 @@ def install(ctx, pkgs, delete_after_install=False):
             r = rsession.head(pkgurl)
             r.raise_for_status()
             total_size = int(r.headers.get('content-length', 0))
-            pkgsize = sizeof_fmt(total_size)
+            pkgsize = _sizeof_fmt(total_size)
             with click.progressbar(length=total_size, label='Downloading {} ({})..'.format(pkgname, pkgsize)) as bar:
                 r = rsession.get(pkgurl, stream=True)
                 with tempfile.NamedTemporaryFile(delete=False) as f:
@@ -476,7 +482,7 @@ def install(ctx, pkgs, delete_after_install=False):
 @click.option('-y', '--yes', is_flag=True, default=False, help='Don\'t ask for confirmation of uninstall deletions.')
 @click.argument('pkgs', nargs=-1)
 def uninstall(ctx, yes, pkgs):
-    """Uninstall a service"""
+    """Uninstall a service."""
     logger.debug('in command: {} {}'.format(ctx.command.name, ctx.params))
     home = ctx.obj['HOME']
 
@@ -503,9 +509,9 @@ def uninstall(ctx, yes, pkgs):
 @click.option('-e', '--editable', is_flag=True, default=False,
               help='Run service directly from spefified path (main for dev)')
 def test(ctx, services, force, editable):
-    """
-    execute the service's internal test method to verify it's working as intended
-    if there's no such method, honeycomb will attempt to connect to the port listed in config.json
+    """Execute the service's internal test method to verify it's working as intended.
+
+    If there's no such method, honeycomb will attempt to connect to the port listed in config.json
     """
     logger.debug('in command: {} {}'.format(ctx.command.name, ctx.params))
     home = ctx.obj['HOME']
@@ -519,7 +525,7 @@ def test(ctx, services, force, editable):
         logger.debug('loading {} ({})'.format(service, service_path))
         click.secho('[+] Loading {}'.format(service))
         service = hc.register_custom_service(service_path)
-        service_module = get_service_module(service_path, service.name)
+        service_module = _get_service_module(service_path, service.name)
 
         if not force:
             if os.path.exists(service_path):
@@ -571,22 +577,8 @@ def test(ctx, services, force, editable):
                     raise click.ClickException('Unable to connect to service port {}'.format(port['port']))
 
 
-@main.command()
-def upgrade():
-    """gets the newest version of a particular honeypot"""
-
-
-@main.command()
-def install_all():
-    """gets all the honeypots from the online library"""
-
-
-@main.command()
-def upgrade_all():
-    """upgrades all the local honeypots"""
-
-
 def setup_logging(home, verbose):
+    """Configure logging for honeycomb."""
     logging.config.dictConfig({
         "version": 1,
         "disable_existing_loggers": False,
@@ -624,7 +616,7 @@ def setup_logging(home, verbose):
     return logging.getLogger(__name__)
 
 
-def mkhome(home):
+def _mkhome(home):
     home = os.path.realpath(home)
     try:
         if not os.path.exists(home):
@@ -633,7 +625,7 @@ def mkhome(home):
         raise click.ClickException('Unable to create Honeycomb repository {}'.format(str(e)))
 
 
-def sizeof_fmt(num, suffix='B'):
+def _sizeof_fmt(num, suffix='B'):
     if not num:
         return 'unknown size'
     for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
@@ -643,7 +635,7 @@ def sizeof_fmt(num, suffix='B'):
     return "%.1f%s%s".format(num, 'Yi', suffix)
 
 
-def get_service_module(service_path, service_name):
+def _get_service_module(service_path, service_name):
     # add custom paths so imports would work
     sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
     sys.path.insert(0, os.path.join(service_path, DEPS_DIR))
@@ -651,12 +643,3 @@ def get_service_module(service_path, service_name):
 
     # get our service class instance
     return importlib.import_module(".".join([service_name, service_name + '_service']))
-
-
-def search_json_log(filepath, key, value):
-    with open(filepath, 'r') as fh:
-        for line in fh.readlines():
-                log = json.loads(line)
-                if key in log and log[key] == value:
-                    return log
-        return False

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+"""Honeycomb wait utilities."""
 import time
+import json
 import logging
 import threading
 import subprocess
@@ -8,11 +10,21 @@ logger = logging.getLogger(__name__)
 
 
 class TimeoutCommand(object):
+    """TimeoutCommand allows running a command line process in a thread.
+
+    :param cmd: command to run (in a :py:func:`subprocess.Popen` shell)
+    """
+
     def __init__(self, cmd):
+        """init."""
         self.cmd = cmd
         self.process = None
 
     def run(self, timeout):
+        """Start the specified command in a thread and wait until timeout.
+
+        :param timeout: Timeout in seconds
+        """
         def target():
             logger.debug('starting process: {}'.format(self.cmd))
             self.process = subprocess.Popen(self.cmd, shell=True)
@@ -30,6 +42,8 @@ class TimeoutCommand(object):
 
 
 class TimeoutException(Exception):
+    """Exception to be raised on timeout."""
+
     pass
 
 
@@ -41,8 +55,9 @@ def wait_until(func,
                error_message="",
                *args,
                **kwargs):
-    """
-    Waits until func(*args, **kwargs),
+    """Run a command in a loop until desired result or timeout occurs.
+
+    :param check_return_value:
     until total_timeout seconds,
     for interval seconds interval,
     while catching exceptions given in exc_list.
@@ -68,19 +83,17 @@ def wait_until(func,
     raise TimeoutException(error_message)
 
 
-def wait_until_no_timeout_exception(func,
-                                    total_timeout=60,
-                                    interval=0.5,
-                                    exc_list=None,
-                                    *args,
-                                    **kwargs):
-    try:
-        return wait_until(func,
-                          check_return_value=False,
-                          total_timeout=total_timeout,
-                          interval=interval,
-                          exc_list=exc_list,
-                          *args,
-                          **kwargs)
-    except TimeoutException:
-        return func(**kwargs)
+def search_json_log(filepath, key, value):
+    """Search json log file for a key=value pair.
+
+    :param filepath: Valid path to a json file
+    :param key: key to match
+    :param value: value to match
+    :returns: First matching line in json log file, parsed by :py:func:`json.loads`
+    """
+    with open(filepath, 'r') as fh:
+        for line in fh.readlines():
+                log = json.loads(line)
+                if key in log and log[key] == value:
+                    return log
+        return False

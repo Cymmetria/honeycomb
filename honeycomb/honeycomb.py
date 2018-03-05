@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Honeycomb Service Manager."""
 from __future__ import unicode_literals
 
 import os
@@ -12,25 +13,32 @@ import click
 from .utils.defs import *
 
 
-class CustomServiceException(click.ClickException):
-    pass
-
-
 class Honeycomb():
+    """Honeycomb serivce manager.
+
+    Honeycomb will parse the service config file and validate its contents.
+    """
+
     logger = logging.getLogger(CUSTOM_SERVICES)
     alert_types = list()  # list of AlertType (Used only to make sure there are no duplicate alert names)
 
-    def get_parameters(self, package_folder):
+    def _get_parameters(self, package_folder):
         json_config_path = os.path.join(package_folder, CONFIG_FILE_NAME)
         with open(json_config_path, 'r') as f:
             config = json.load(f)
         return config.get(PARAMETERS, [])
 
     def register_custom_service(self, package_folder):
+        """Register a honeycomb service.
+
+        :param package_folder: Path to folder with service to load
+        :returns: Validated service object
+        :rtype: :func:`honeycomb.utils.defs.ServiceType`
+        """
         json_config_path = os.path.join(package_folder, CONFIG_FILE_NAME)
         if not os.path.exists(json_config_path):
             self.logger.debug(MISSING_FILE_ERROR.format(json_config_path))
-            raise CustomServiceException('Cannot find service ' + os.path.basename(package_folder))
+            raise click.ClickException('Cannot find service ' + os.path.basename(package_folder))
 
         with open(json_config_path, 'r') as f:
             config_json = json.load(f)
@@ -87,12 +95,12 @@ class Honeycomb():
             field_value = config_json.get(field_name, None)
             if field_value is None:
                 self.logger.debug(FIELD_DOES_NOT_EXIST.format(field_name))
-                raise CustomServiceException(FIELD_DOES_NOT_EXIST.format(field_name))
+                raise click.ClickException(FIELD_DOES_NOT_EXIST.format(field_name))
 
             if not validator_obj.validator_func(field_value):
                 self.logger.debug(CUSTOM_MESSAGE_ERROR_VALIDATION.format(
                     field_name, field_value, validator_obj.get_error_message()))
-                raise CustomServiceException(
+                raise click.ClickException(
                     CUSTOM_MESSAGE_ERROR_VALIDATION.format(
                         field_name, field_value, validator_obj.get_error_message()))
 
@@ -101,21 +109,21 @@ class Honeycomb():
            (field_type == INTEGER_TYPE and not isinstance(value, int)) or \
            (field_type == TEXT_TYPE and not isinstance(value, six.string_types)):
             self.logger.debug(PARAMETERS_DEFAULT_DOESNT_MATCH_TYPE.format(field, value, field_type))
-            raise CustomServiceException(PARAMETERS_DEFAULT_DOESNT_MATCH_TYPE.format(field, value, field_type))
+            raise click.ClickException(PARAMETERS_DEFAULT_DOESNT_MATCH_TYPE.format(field, value, field_type))
 
     def _validate_custom_field(self, field):
         for key, value in field.items():
             if key not in ALLOWED_KEYS:
                 self.logger.debug(PARAMETERS_FIELD_ERROR.format(key, "property"))
-                raise CustomServiceException(PARAMETERS_FIELD_ERROR.format(key, "property"))
+                raise click.ClickException(PARAMETERS_FIELD_ERROR.format(key, "property"))
             if key == TYPE:
                 if value not in ALLOWED_TYPES:
                     self.logger.debug(PARAMETERS_FIELD_ERROR.format(value, key))
-                    raise CustomServiceException(PARAMETERS_FIELD_ERROR.format(value, key))
+                    raise click.ClickException(PARAMETERS_FIELD_ERROR.format(value, key))
             if key == VALUE:
                 if not self._is_valid_field_name(value):
                     self.logger.debug(PARAMETERS_FIELD_ERROR.format(value, "field name"))
-                    raise CustomServiceException(PARAMETERS_FIELD_ERROR.format(value, "field name"))
+                    raise click.ClickException(PARAMETERS_FIELD_ERROR.format(value, "field name"))
 
     def _get_truetype(self, value):
         if value in ['true', 'True', 'y', 'Y', 'yes']:
@@ -127,6 +135,14 @@ class Honeycomb():
         return str(value)
 
     def parse_service_args(self, cmdargs, service_args):
+        """Parse command line arguments based on the service's parameters config.
+
+        :param cmdargs: Command line arguments as provided by the user in `key=value` format.
+        :param service_args: Service parameters parsed from config.json.
+
+        :returns: Validated dictionary of parameters that will be passed to
+                  :class:`honeycomb.base_service.ServerCustomService`
+        """
         args = dict()
         for cmdarg in cmdargs:
             kv = cmdarg.split('=')
@@ -138,7 +154,7 @@ class Honeycomb():
                 self._validate_field_matches_type(field, args[field], field_type)
             elif arg[REQUIRED] and DEFAULT not in arg:
                 """parameter was not supplied by user, but it's required and has no default value"""
-                raise CustomServiceException(PARAMETERS_REQUIRED_FIELD_MISSING.format(field))
+                raise click.ClickException(PARAMETERS_REQUIRED_FIELD_MISSING.format(field))
         return args
 
     def _is_valid_field_name(self, value):

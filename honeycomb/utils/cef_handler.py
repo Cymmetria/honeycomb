@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+"""CEF Syslog Handler."""
+
 import socket
 import logging
 import logging.handlers
@@ -14,15 +16,17 @@ logger = logging.getLogger(__name__)
 
 
 class CEFSyslogHandler(logging.handlers.SysLogHandler):
-    """
-        For some reason python SysLogHandler appends \x00 byte to every record sent,
-        This fixes it by replacing it with \n, and implemeting CEF format
+    r"""Override SysLogHandler to include CEF formatted logs and minor fixes.
+
+    For some reason python SysLogHandler appends \x00 byte to every record sent,
+    This fixes it by replacing it with \n, and implemeting CEF format
     """
 
     def __init__(self,
                  address,
                  facility=logging.handlers.SysLogHandler.LOG_USER,
                  socktype=socket.SOCK_DGRAM):
+        """__init__."""
         # Copied the code from logging.handlers.SysLogHandler
         logging.Handler.__init__(self)
 
@@ -37,12 +41,12 @@ class CEFSyslogHandler(logging.handlers.SysLogHandler):
         self.formatter = None
 
     def close(self):
+        """Close syslog socket on cleanup."""
         if self.socket:
             self.socket.close()
 
     def emit(self, record):
-        """
-        Emit a record.
+        """Emit a record.
 
         The record is formatted, and then sent to the syslog server. If
         exception information is present, it is NOT sent to the server.
@@ -72,6 +76,7 @@ class CEFSyslogHandler(logging.handlers.SysLogHandler):
             self.handleError(record)
 
     def format(self, record):
+        """Format syslog string with CEF."""
         cef_event = CEFEvent()
         timestamp = datetime.fromtimestamp(record.created).isoformat() if record.created else None
         hostname = socket.getfqdn()
