@@ -14,6 +14,6 @@ Welcome to Honeycomb's documentation!
 Honeycomb CLI
 --------------------
 
-.. click:: honeycomb.cli:main
+.. click:: honeycomb.cli:cli
    :prog: Honeycomb
    :show-nested:

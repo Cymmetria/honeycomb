@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """CEF Syslog Handler."""
 
+from __future__ import unicode_literals, absolute_import
+
 import socket
 import logging
 import logging.handlers
@@ -10,7 +12,7 @@ import six
 from cefevent import CEFEvent
 
 from honeycomb import __version__
-from .defs import CEFCustomString, AlertFields
+from honeycomb.defs import CEFCustomString, AlertFields
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +28,7 @@ class CEFSyslogHandler(logging.handlers.SysLogHandler):
                  address,
                  facility=logging.handlers.SysLogHandler.LOG_USER,
                  socktype=socket.SOCK_DGRAM):
-        """__init__."""
+        """See class docstring."""
         # Copied the code from logging.handlers.SysLogHandler
         logging.Handler.__init__(self)
 
@@ -51,16 +53,16 @@ class CEFSyslogHandler(logging.handlers.SysLogHandler):
         The record is formatted, and then sent to the syslog server. If
         exception information is present, it is NOT sent to the server.
         """
-        msg = self.format(record) + '\n'
+        msg = self.format(record) + "\n"
 
         # We need to convert record level to lowercase, maybe this will
         # change in the future.
 
-        prio = b'<%d>' % self.encodePriority(self.facility,
+        prio = b"<%d>" % self.encodePriority(self.facility,
                                              self.mapPriority(record.levelname))
         # Message is a string. Convert to bytes as required by RFC 5424
         if type(msg) is six.text_type:
-            msg = msg.encode('utf-8')
+            msg = msg.encode("utf-8")
         msg = prio + msg
         try:
             if self.socktype == socket.SOCK_DGRAM:
@@ -97,8 +99,7 @@ class CEFSyslogHandler(logging.handlers.SysLogHandler):
                     six.text_type(cef_field_name), six.text_type(field_value))
 
             if not result:
-                logger.warning("cef field {} didn't defined well to cef".format(
-                    field_name))
+                logger.warning("cef field {} didn't defined well to cef".format(field_name))
 
         entry = "{timestamp} {host} {cef_message}".format(
             timestamp=timestamp,

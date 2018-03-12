@@ -18,7 +18,8 @@
         ],
         "name": "simple_http",
         "label": "Simple HTTP Server",
-        "description": "Simple HTTP Server that alerts on every request"
+        "description": "Simple HTTP Server that alerts on every request",
+        "conflicts_with": []
     },
     "parameters": [
       {

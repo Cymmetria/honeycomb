@@ -5,11 +5,12 @@ This file allows runnign honeycomb as a module directly without calling a method
 .. code-block:: bash
     $ python -m honeycomb --help
 """
+
 from __future__ import absolute_import
 
 import sys
 
-from .cli import cli
+from honeycomb.cli import cli
 
 
 def main():
@@ -17,5 +18,5 @@ def main():
     return sys.exit(cli())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -1,0 +1,52 @@
+{
+    "display_name": "Syslog",
+    "description": "Supports Splunk, ArcSight, Elasticsearch, and more",
+    "integration_type": "event_output",
+    "supported_event_types": [],
+    "required_fields": [
+    ],
+    "max_send_retries": 5,
+    "polling_enabled": false,
+    "test_connection_enabled": false,
+    "parameters": [
+        {
+            "value": "protocol",
+            "label": "Protocol",
+            "type": "select",
+            "required": true,
+            "items": [
+                {"value": "tcp", "label": "TCP"},
+                {"value": "udp", "label": "UDP"}
+            ]
+        },
+        {
+            "value": "address",
+            "label": "Address",
+            "type": "string",
+            "required": true,
+            "validator": "fqdn_ipv4"
+        },
+        {
+            "value": "port",
+            "label": "Port",
+            "type": "integer",
+            "min": 1,
+            "max": 65535,
+            "required": true,
+            "validator": "port"
+        },
+        {
+            "value": "cef_output_format",
+            "label": "Use Common Event Format (CEF)",
+            "type": "boolean",
+            "default": false
+        },
+        {
+            "value": "syslog_ssl_enabled",
+            "label": "Encrypt TCP syslog with SSL",
+            "type": "boolean",
+            "default": false,
+            "help_text": "Events sent to syslog will be encrypted with SSL. This can be enabled if Cymmetria has configured your MazeRunner™ with the relevant certificates and keys. Relevant only for TCP."
+        }
+    ]
+}

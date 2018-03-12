@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 """Honeycomb wait utilities."""
+
+from __future__ import unicode_literals, absolute_import
+
 import time
 import json
 import logging
@@ -26,7 +29,7 @@ class TimeoutCommand(object):
         :param timeout: Timeout in seconds
         """
         def target():
-            logger.debug('starting process: {}'.format(self.cmd))
+            logger.debug("starting process: {}".format(self.cmd))
             self.process = subprocess.Popen(self.cmd, shell=True)
             self.process.communicate()
 
@@ -35,7 +38,7 @@ class TimeoutCommand(object):
 
         thread.join(timeout)
         if thread.is_alive():
-            logger.debug('terminating process: {}'.format(self.process))
+            logger.debug("terminating process: {}".format(self.process))
             self.process.terminate()
             thread.join()
             raise TimeoutException
@@ -67,13 +70,13 @@ def wait_until(func,
     while time.time() - start_function < total_timeout:
 
         try:
-            logger.debug('executing {} with args {} {}'.format(func, args, kwargs))
+            logger.debug("executing {} with args {} {}".format(func, args, kwargs))
             return_value = func(*args, **kwargs)
             if not check_return_value or (check_return_value and return_value):
                 return return_value
 
-        except Exception as e:
-            if exc_list and any([isinstance(e, x) for x in exc_list]):
+        except Exception as exc:
+            if exc_list and any([isinstance(exc, x) for x in exc_list]):
                 pass
             else:
                 raise
@@ -91,7 +94,7 @@ def search_json_log(filepath, key, value):
     :param value: value to match
     :returns: First matching line in json log file, parsed by :py:func:`json.loads`
     """
-    with open(filepath, 'r') as fh:
+    with open(filepath, "r") as fh:
         for line in fh.readlines():
                 log = json.loads(line)
                 if key in log and log[key] == value:

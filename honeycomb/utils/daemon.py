@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Honeycomb DaemonRunner utility."""
-from __future__ import absolute_import
+
+from __future__ import unicode_literals, absolute_import
 
 import sys
 
@@ -11,7 +12,7 @@ import daemon.daemon
 class myRunner(daemon.runner.DaemonRunner):
     """Overriding default runner behaviour to be simpler."""
 
-    def __init__(self, app, pidfile=None, stdout=sys.stdout, stderr=sys.stderr, stdin=open('/dev/null', 'rt')):
+    def __init__(self, app, pidfile=None, stdout=sys.stdout, stderr=sys.stderr, stdin=open("/dev/null", "rt")):
         """
         Override init to fit honeycomb needs.
 

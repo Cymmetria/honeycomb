@@ -110,3 +110,7 @@ venv.bak/
 
 # macos
 .DS_Store
+
+
+# Honeycomb
+.args.json

@@ -4,14 +4,15 @@ from __future__ import absolute_import
 
 import os
 import ctypes
-import logging
+import logging.config
 
+import six
 import click
 from pythonjsonlogger import jsonlogger
 
 from honeycomb import __version__
-from honeycomb.utils import defs
 from honeycomb.commands import commands_list
+from honeycomb.defs import DEBUG_LOG_FILE, INTEGRATIONS, SERVICES
 
 
 CONTEXT_SETTINGS = dict(
@@ -20,22 +21,25 @@ CONTEXT_SETTINGS = dict(
     max_content_width=120,
 )
 
+logger = logging.getLogger(__name__)
 
-@click.group(context_settings=CONTEXT_SETTINGS)
+
+@click.group(commands=commands_list, context_settings=CONTEXT_SETTINGS,
+             invoke_without_command=True, no_args_is_help=True)
 @click.pass_context
-@click.option('--home', '-h', default=os.path.realpath(os.path.expanduser('~/.honeycomb')),
-              help='Path Honeycomb repository', type=click.Path())
-@click.option('--iamroot', is_flag=True, default=False, help='Force run as root (NOT RECOMMENDED!)')
-@click.option('--verbose', '-v', envvar="DEBUG", is_flag=True, default=False, help='Enable verbose logging')
+@click.option("--home", "-h", default=click.get_app_dir("honeycomb"),
+              help="Honeycomb home path", type=click.Path(), show_default=True)
+@click.option("--iamroot", is_flag=True, default=False, help="Force run as root (NOT RECOMMENDED!)")
+@click.option("--verbose", "-v", envvar="DEBUG", is_flag=True, default=False, help="Enable verbose logging")
+@click.version_option(version=__version__)
 def cli(ctx, home, iamroot, verbose):
     """Homeycomb is a honeypot framework."""
     _mkhome(home)
     setup_logging(home, verbose)
 
-    logger = logging.getLogger(__name__)
-
-    logger.debug('Starting up Honeycomb v{}'.format(__version__))
-    logger.debug('in command: {} {}'.format(ctx.command.name, ctx.params))
+    logger.debug("Honeycomb v%s", __version__, extra={"version": __version__})
+    logger.debug("running command %s (%s)", ctx.command.name, ctx.params,
+                 extra={"command": ctx.command.name, "params": ctx.params})
 
     try:
         is_admin = os.getuid() == 0
@@ -44,28 +48,50 @@ def cli(ctx, home, iamroot, verbose):
 
     if is_admin:
         if not iamroot:
-            raise click.ClickException('Honeycomb should not run as a privileged user, if you are just '
-                                       'trying to bind to a low port try running `setcap "cap_net_bind_service=+ep" '
-                                       '$(which honeycomb)` instead. If you insist, use --iamroot')
-        logger.warn('running as root!')
+            raise click.ClickException("Honeycomb should not run as a privileged user, if you are just "
+                                       "trying to bind to a low port try running `setcap 'cap_net_bind_service=+ep' "
+                                       "$(which honeycomb)` instead. If you insist, use --iamroot")
+        logger.warn("running as root!")
 
-    ctx.obj['HOME'] = home
+    ctx.obj["HOME"] = home
 
-    logger.debug('ctx: {}'.format(ctx.obj))
+    logger.debug("ctx: {}".format(ctx.obj))
+
+
+class MyLogger(logging.Logger):
+    """Custom Logger."""
+
+    def makeRecord(self, name, level, fn, lno, msg, args, exc_info, func=None, extra=None, sinfo=None):
+        """Override default logger to allow overridding internal attributes."""
+        if six.PY2:
+            rv = logging.LogRecord(name, level, fn, lno, msg, args, exc_info, func)
+        else:
+            rv = logging.LogRecord(name, level, fn, lno, msg, args, exc_info, func, sinfo)
+
+        if extra is None:
+            extra = dict()
+        extra.update({"pid": os.getpid(), "uid": os.getuid(), "gid": os.getgid(), "ppid": os.getppid()})
+
+        for key in extra:
+            # if (key in ["message", "asctime"]) or (key in rv.__dict__):
+            #     raise KeyError("Attempt to overwrite %r in LogRecord" % key)
+            rv.__dict__[key] = extra[key]
+        return rv
 
 
 def setup_logging(home, verbose):
     """Configure logging for honeycomb."""
+    logging.setLoggerClass(MyLogger)
     logging.config.dictConfig({
         "version": 1,
         "disable_existing_loggers": False,
         "formatters": {
             "console": {
-                "format": '%(levelname)-8s [%(asctime)s %(module)s] %(filename)s:%(lineno)s %(funcName)s: %(message)s',
+                "format": "%(levelname)-8s [%(asctime)s %(name)s] %(filename)s:%(lineno)s %(funcName)s: %(message)s",
             },
             "json": {
                 "()": jsonlogger.JsonFormatter,
-                "format": '%(levelname)s %(asctime)s %(module)s %(filename)s %(lineno)s %(funcName)s %(message)s',
+                "format": "%(levelname)s %(asctime)s %(name)s %(filename)s %(lineno)s %(funcName)s %(message)s",
             },
         },
         "handlers": {
@@ -77,7 +103,7 @@ def setup_logging(home, verbose):
             "file": {
                 "level": "DEBUG",
                 "class": "logging.handlers.WatchedFileHandler",
-                "filename": os.path.join(home, defs.DEBUG_LOG_FILE),
+                "filename": os.path.join(home, DEBUG_LOG_FILE),
                 "formatter": "json",
             },
         },
@@ -92,13 +118,17 @@ def setup_logging(home, verbose):
 
 
 def _mkhome(home):
+
+    def mkdir_if_not_exists(path):
+        try:
+            if not os.path.exists(path):
+                os.mkdir(path)
+        except OSError as exc:
+            logger.exception(exc)
+            raise click.ClickException("Unable to create Honeycomb home dirs")
+
     home = os.path.realpath(home)
-    try:
-        if not os.path.exists(home):
-            os.mkdir(home)
-    except OSError as e:
-        raise click.ClickException('Unable to create Honeycomb repository {}'.format(str(e)))
-
-
-for command in commands_list:
-    cli.add_command(command)
+    for path in [home,
+                 os.path.join(home, SERVICES),
+                 os.path.join(home, INTEGRATIONS)]:
+        mkdir_if_not_exists(path)

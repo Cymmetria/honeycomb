@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
-"""Honeycomb Utils."""
+"""Honeycomb Decoy Manager."""
 from __future__ import unicode_literals, absolute_import
