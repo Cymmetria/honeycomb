@@ -122,9 +122,9 @@ def _mkhome(home):
     def mkdir_if_not_exists(path):
         try:
             if not os.path.exists(path):
-                os.mkdir(path)
+                os.makedirs(path)
         except OSError as exc:
-            logger.exception(exc)
+            logging.exception(exc)
             raise click.ClickException("Unable to create Honeycomb home dirs")
 
     home = os.path.realpath(home)

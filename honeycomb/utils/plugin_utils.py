@@ -236,7 +236,7 @@ def parse_plugin_args(command_args, config_args):
         elif defs.DEFAULT in arg:
             # return default values for unset parameters
             parsed_args[value] = arg[defs.DEFAULT]
-        elif defs.REQUIRED in arg:
+        elif arg[defs.REQUIRED] in arg:
             """parameter was not supplied by user, but it's required and has no default value"""
             raise exceptions.RequiredFieldMissing(value)
     return parsed_args

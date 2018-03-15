@@ -32,6 +32,7 @@ def get_service_module(service_path):
     paths = [
         os.path.dirname(__file__),  # this folder, to catch base_service
         os.path.realpath(os.path.join(service_path, "..")),  # service's parent folder for import
+        os.path.realpath(os.path.join(service_path)),  # service's folder for local imports
         os.path.realpath(os.path.join(service_path, DEPS_DIR)),  # deps dir
     ]
 
@@ -54,7 +55,7 @@ def register_service(package_folder):
     :returns: Validated service object
     :rtype: :func:`honeycomb.utils.defs.ServiceType`
     """
-    logger.debug("registering integration %s", package_folder)
+    logger.debug("registering service %s", package_folder)
     package_folder = os.path.realpath(package_folder)
     if not os.path.exists(package_folder):
         raise ServiceNotFound(os.path.basename(package_folder))

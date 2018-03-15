@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Honetcomb integration models."""
-
 from __future__ import unicode_literals, absolute_import
+
 
 from datetime import datetime, timedelta
 
@@ -28,7 +28,7 @@ class Integration(object):
     polling_duration = attrib(type=timedelta, default=0)
 
     # TODO: Fix schema differences between custom service and integration config.json
-    name = attrib(type=str, init=False, default=Factory(lambda self: self.display_name.lower(), True))
+    name = attrib(type=str, init=False, default=Factory(lambda self: self.display_name.lower().replace(" ", "_"), True))
     label = attrib(type=str, init=False, default=Factory(lambda self: self.description, True))
 
 

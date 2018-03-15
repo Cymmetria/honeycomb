@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Custom Service implementation from MazeRunner."""
-
 from __future__ import unicode_literals, absolute_import
+
 
 import sys
 import logging
@@ -10,11 +10,12 @@ from threading import Thread
 from multiprocessing import Process
 
 import six
+from six.moves.queue import Queue, Full, Empty
 
 from honeycomb.decoymanager.models import Alert
 from honeycomb.servicemanager.defs import SERVICE_ALERT_QUEUE_SIZE
+from honeycomb.servicemanager.error_messages import INVALID_ALERT_TYPE
 from honeycomb.integrationmanager.tasks import send_alert_to_subscribed_integrations
-from six.moves.queue import Queue, Full, Empty
 
 
 @attrs
@@ -82,9 +83,14 @@ class ServerCustomService(Process):
     def emit(self, **kwargs):
         """Send alerts to logfile.
 
-        :param kwargs: fields to pass to :py:class:`honeycomb.models.Alert` (see :py:obj:`honeycomb.defs.AlertTypes`)
+        :param **kwargs: Fields to pass to :py:class:`honeycomb.decoymanager.models.Alert`
         """
-        alert_type = [_ for _ in self.alert_types if _.name == kwargs['event_type']][0]
+        try:
+            alert_type = next(_ for _ in self.alert_types if _.name == kwargs['event_type'])
+        except StopIteration:
+            self.logger.error(INVALID_ALERT_TYPE, kwargs['event_type'])
+            return
+
         self.logger.critical(kwargs)
 
         alert = Alert(alert_type)
