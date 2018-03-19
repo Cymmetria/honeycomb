@@ -19,6 +19,7 @@ CONTEXT_SETTINGS = dict(
     obj={},
     auto_envvar_prefix="HC",  # all parameters will be taken from HC_PARAMETER first
     max_content_width=120,
+    help_option_names=['-h', '--help'],
 )
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 @click.group(commands=commands_list, context_settings=CONTEXT_SETTINGS,
              invoke_without_command=True, no_args_is_help=True)
 @click.pass_context
-@click.option("--home", "-h", default=click.get_app_dir("honeycomb"),
+@click.option("--home", "-H", default=click.get_app_dir("honeycomb"),
               help="Honeycomb home path", type=click.Path(), show_default=True)
 @click.option("--iamroot", is_flag=True, default=False, help="Force run as root (NOT RECOMMENDED!)")
 @click.option("--verbose", "-v", envvar="DEBUG", is_flag=True, default=False, help="Enable verbose logging")

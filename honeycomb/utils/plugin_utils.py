@@ -65,7 +65,14 @@ def install_deps(pkgpath):
 
     We import pip here to reduce load time for when its not needed.
     """
-    import pip
+    logger.debug("importing pip")
+    try:
+        import pip
+    except Exception as exc:
+        logger.exception(exc)
+        raise click.ClickException("Unable to import pip. Are you using pip 9.0.2? If so, downgrade "
+                                   "to pip 9.0.1 by running `pip install pip==9.0.1`. See "
+                                   "https://github.com/pypa/pip/issues/5081 for more details")
 
     if os.path.exists(os.path.join(pkgpath, "requirements.txt")):
         logger.debug("installing dependencies")
@@ -233,10 +240,10 @@ def parse_plugin_args(command_args, config_args):
             # will raise if invalid
             config_utils.validate_field_matches_type(value, parsed_args[value], value_type,
                                                      arg.get(defs.ITEMS), arg.get(defs.MIN), arg.get(defs.MAX))
-        elif defs.DEFAULT in arg:
+        elif defs.DEFAULT in arg:  # Has a default feild
             # return default values for unset parameters
             parsed_args[value] = arg[defs.DEFAULT]
-        elif arg[defs.REQUIRED] in arg:
+        elif arg[defs.REQUIRED]:  # requires field is true
             """parameter was not supplied by user, but it's required and has no default value"""
             raise exceptions.RequiredFieldMissing(value)
     return parsed_args
@@ -249,7 +256,7 @@ def get_select_items(items):
         if isinstance(item, dict) and defs.VALUE in item and defs.LABEL in item:
             option_items.append(item[defs.VALUE])
         else:
-            raise exceptions.ParametersFieldError(item, 'a dictionary with {} and {}'
+            raise exceptions.ParametersFieldError(item, "a dictionary with {} and {}"
                                                   .format(defs.LABEL, defs.VALUE))
     return option_items
 
@@ -261,7 +268,7 @@ def _parse_select_options(arg):
             option_items = get_select_items(arg[defs.ITEMS])
             options = " (valid options: {})".format(", ".join(option_items))
         else:
-            raise exceptions.ParametersFieldError(defs.ITEMS, 'list')
+            raise exceptions.ParametersFieldError(defs.ITEMS, "list")
 
     return options
 

@@ -24,12 +24,12 @@ class MyGroup(click.Group):
         self.folder = os.path.join(cwd, folder)
         # self.commands = self._get_commands()
 
-    def _get_commands(self):
-        commands = {}
-        for command in self.list_commands(self):
-            commands[command] = self.get_command(self, command)
-
-        return commands
+    # def _get_commands(self):
+    #     commands = {}
+    #     for command in self.list_commands(self):
+    #         commands[command] = self.get_command(self, command)
+    #
+    #     return commands
 
     def list_commands(self, ctx):
         """List commands from folder."""

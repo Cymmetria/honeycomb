@@ -2,6 +2,8 @@
 """Syslog utility for tests."""
 
 import logging
+import threading
+
 from six.moves import socketserver
 
 logger = logging.getLogger(__name__)
@@ -10,13 +12,14 @@ logger = logging.getLogger(__name__)
 class SyslogUDPHandler(socketserver.BaseRequestHandler):
     """Syslog UDP dummy handler."""
 
-    outputFile = None
+    outputHandle = None
 
     def handle(self):
         """Handle incoming data by logging to debug and writing to logfie."""
         data = bytes.decode(self.request[0].strip())
         logger.debug(data)
-        self.outputFile.write(data)
+        self.outputHandle.write(data)
+        self.outputHandle.flush()
 
 
 def runSyslogServer(host, port, logfile):
@@ -26,7 +29,14 @@ def runSyslogServer(host, port, logfile):
     :param port: Port to listen
     :param logfile: File handle used to write incoming logs
     """
+    logfilehandle = open(logfile, "w+")
     handler = SyslogUDPHandler
-    handler.outputFile = logfile
+    handler.outputHandle = logfilehandle
     syslogd = socketserver.UDPServer((host, port), handler)
-    syslogd.serve_forever()
+
+    def serve():
+        syslogd.serve_forever()
+
+    thread = threading.Thread(target=serve)
+    thread.start()
+    return syslogd

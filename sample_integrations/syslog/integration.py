@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """Honeycomb Syslog integration."""
-from __future__ import unicode_literals
+from __future__ import unicode_literals, absolute_import
 
 import ssl
 import socket
 import logging.handlers
 
+import six
 import certifi
 from cefevent import CEFEvent
 from attr import attrs, attrib
@@ -71,15 +72,6 @@ cef_dict = {
 class SyslogIntegration(BaseIntegration):
     """Honeycomb Syslog integration."""
 
-    @staticmethod
-    def add_syslog_escaping(syslog_field):
-        """Escape syslog fields so they don't break."""
-        if not isinstance(syslog_field, unicode):
-            field = unicode(bytes(syslog_field), encoding='utf-8', errors='ignore')
-        else:
-            field = syslog_field
-        return field.replace('\n', ' ').replace('\\', '\\\\').replace('=', '\\=').replace('"', '\\"')
-
     def get_formatted_alert_as_cef(self, result_fields):
         """Format message as CEFEvent."""
         cef_event = CEFEvent()
@@ -87,24 +79,24 @@ class SyslogIntegration(BaseIntegration):
         hostname = socket.getfqdn()
         for field_name, field_value in [("deviceVendor", "Cymmetria"),
                                         ("deviceProduct", "Honeycomb"),
-                                        ("deviceVersion", unicode(__version__))]:
+                                        ("deviceVersion", six.text_type(__version__))]:
             cef_event.set_field(field_name, field_value)
 
         result = None
 
-        for field_name, field_value in result_fields.iteritems():
+        for field_name, field_value in six.iteritems(result_fields):
             if field_name not in cef_dict:
                 continue
 
             cef_field_name = cef_dict[field_name].field_name
             if isinstance(cef_field_name, CEFCustomString):
                 result = cef_event.set_field(
-                    unicode(cef_field_name.field_name), unicode(field_value))
+                    six.text_type(cef_field_name.field_name), six.text_type(field_value))
                 cef_event.set_field(
-                    unicode(cef_field_name.field_label), unicode(cef_field_name.field_label_text))
+                    six.text_type(cef_field_name.field_label), six.text_type(cef_field_name.field_label_text))
             else:
                 result = cef_event.set_field(
-                    unicode(cef_field_name), unicode(field_value))
+                    six.text_type(cef_field_name), six.text_type(field_value))
 
             if not result:
                 self.logger.warning("cef field {} didn't defined well to cef to alert_id {}".format(
@@ -122,8 +114,8 @@ class SyslogIntegration(BaseIntegration):
         timestamp = result_fields['timestamp'].isoformat() if result_fields['timestamp'] else None
         application = "Honeycomb"
         hostname = socket.getfqdn()
-        data = ' '.join(['{}="{}"'.format(x, self.add_syslog_escaping(result_fields[x]))
-                         for x in result_fields.iterkeys()])
+        data = ' '.join(['{}="{}"'.format(x, result_fields[x])
+                         for x in six.iterkeys(result_fields)])
 
         syslog_entry = "{timestamp} {host} {application}: {data}".format(
             timestamp=timestamp,
@@ -227,10 +219,10 @@ class MySysLogHandler(logging.handlers.SysLogHandler):
         # We need to convert record level to lowercase, maybe this will
         # change in the future.
 
-        prio = '<%d>' % self.encodePriority(self.facility,
-                                            self.mapPriority(record.levelname))
+        prio = b'<%d>' % self.encodePriority(self.facility,
+                                             self.mapPriority(record.levelname))
         # Message is a string. Convert to bytes as required by RFC 5424
-        if type(msg) is unicode:
+        if type(msg) is six.text_type:
             msg = msg.encode('utf-8')
         msg = prio + msg
         try:

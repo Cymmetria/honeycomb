@@ -36,28 +36,21 @@ class _UTC(tzinfo):
         return datetime.timedelta(0)
 
 
-class _IntegrationThread(threading.Thread):
-    def __init__(self, target, *args):
-        self._target = target
-        self._args = args
-        threading.Thread.__init__(self)
-
-    def run(self):
-        self._target(*self._args)
-
-
 def configure_integration(path):
     """Configure and enable an integration."""
     integration = register_integration(path)
+    integration_args = {}
     try:
         with open(os.path.join(path, ARGS_JSON)) as f:
             integration_args = json.loads(f.read())
-    except IOError:
+    except Exception as exc:
+        logger.debug(str(exc), exc_info=True)
         raise click.ClickException("Cannot load {} integration args, please configure it first."
                                    .format(os.path.basename(path)))
 
     click.secho("[*] Adding integration {}".format(integration.name))
-    logger.debug("adding integration", extra={"integration": integration.name, "args": integration_args})
+    logger.debug("adding integration %s", integration.name,
+                 extra={"integration": integration.name, "args": integration_args})
     configured_integration = ConfiguredIntegration(name=integration.name, integration=integration, path=path)
     configured_integration.data = integration_args
     configured_integration.integration.module = get_integration_module(path).IntegrationActionsClass(integration_args)
@@ -70,7 +63,7 @@ def send_alert_to_subscribed_integrations(alert):
     valid_configured_integrations = get_valid_configured_integrations(alert)
 
     for configured_integration in valid_configured_integrations:
-        _IntegrationThread(create_integration_alert_and_call_send, alert, configured_integration).start()
+        threading.Thread(target=create_integration_alert_and_call_send, args=(alert, configured_integration)).start()
 
 
 def get_current_datetime_utc():

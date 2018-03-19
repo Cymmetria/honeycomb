@@ -3,7 +3,6 @@
 
 import os
 import json
-import socket
 import signal
 import logging
 
@@ -18,16 +17,6 @@ from honeycomb.servicemanager.registration import register_service, get_service_
 logger = logging.getLogger(__name__)
 
 
-def validate_ip_or_hostname(ctx, param, value):
-    """IP/Host parameter validator."""
-    try:
-        socket.gethostbyname(value)
-        return value
-    except socket.error as exc:
-        logger.debug(str(exc), exc_info=True)
-        raise click.BadParameter("{} must be a valid IP address or hostname")
-
-
 @click.command(short_help="Load and run a specific service")
 @click.pass_context
 @click.argument("service", nargs=1)
@@ -35,7 +24,7 @@ def validate_ip_or_hostname(ctx, param, value):
 @click.option("-d", "--daemon", is_flag=True, default=False, help="Run service in daemon mode")
 @click.option("-e", "--editable", is_flag=True, default=False,
               help="Load service directly from spefified path without installing (mainly for dev)")
-@click.option("-a", "--show_args", is_flag=True, default=False, help="Show available service arguments")
+@click.option("-a", "--show-args", is_flag=True, default=False, help="Show available service arguments")
 @click.option("-i", "--integration", multiple=True, help="Enable an integration")
 def run(ctx, service, arg, show_args, daemon, editable, integration):
     """Load and run a specific service."""

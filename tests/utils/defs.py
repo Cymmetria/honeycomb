@@ -1,11 +1,39 @@
 # -*- coding: utf-8 -*-
 """Honeycomb test constants."""
 
-SERVICE = "service"
-SERVICES = "{}s".format(SERVICE)
 
-VERBOSE = "--verbose"
-IAMROOT = "--iamroot"
-HOME = "--home"
+class commands():
+    """Plugin commands."""
 
-COMMON_ARGS = [VERBOSE, IAMROOT, HOME]
+    RUN = "run"
+    SHOW = "show"
+    TEST = "test"
+    STOP = "stop"
+    LIST = "list"
+    STATUS = "status"
+    INSTALL = "install"
+    UNINSTALL = "uninstall"
+    CONFIGURE = "configure"
+
+
+class plugins():
+    """Plugins."""
+
+    SERVICE = "service"
+    SERVICES = "{}s".format(SERVICE)
+
+    INTEGRATION = "integration"
+    INTEGRATIONS = "{}s".format(INTEGRATION)
+
+
+class args():
+    """Plugin arguments."""
+
+    YES = "--yes"
+    HOME = "--home"
+    DAEMON = "--daemon"
+    VERBOSE = "--verbose"
+    IAMROOT = "--iamroot"
+    SHOW_ALL = "--show-all"
+    INTEGRATION = "--integration"
+    COMMON_ARGS = [VERBOSE, IAMROOT, HOME]

@@ -28,7 +28,7 @@ def test(ctx, integrations, editable):
     home = ctx.obj["HOME"]
 
     for integration in integrations:
-        integration_path = plugin_utils.get_plugin_path(home, INTEGRATIONS, integration)
+        integration_path = plugin_utils.get_plugin_path(home, INTEGRATIONS, integration, editable)
 
         logger.debug("loading {} ({})".format(integration, integration_path))
         click.secho("[+] Loading {}".format(integration))
@@ -49,6 +49,6 @@ def test(ctx, integrations, editable):
 
         success, response = integration_obj.test_connection(integration_args)
         if success:
-            click.secho("{} test: OK".format(integration))
+            click.secho("Integration test: {}, Extra details: {}".format("OK" if success else "FAIL", response))
         else:
             raise IntegrationTestFailed(response)
