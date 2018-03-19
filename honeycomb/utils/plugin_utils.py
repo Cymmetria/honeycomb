@@ -4,10 +4,12 @@
 from __future__ import unicode_literals, absolute_import
 
 import os
+import sys
 import shutil
 import logging
 import zipfile
 import tempfile
+import subprocess
 
 import click
 import requests
@@ -65,22 +67,13 @@ def install_deps(pkgpath):
 
     We import pip here to reduce load time for when its not needed.
     """
-    logger.debug("importing pip")
-    try:
-        import pip
-    except Exception as exc:
-        logger.exception(exc)
-        raise click.ClickException("Unable to import pip. Are you using pip 9.0.2? If so, downgrade "
-                                   "to pip 9.0.1 by running `pip install pip==9.0.1`. See "
-                                   "https://github.com/pypa/pip/issues/5081 for more details")
-
     if os.path.exists(os.path.join(pkgpath, "requirements.txt")):
         logger.debug("installing dependencies")
         click.secho("[*] Installing dependencies")
         pipargs = ["install", "--target", os.path.join(pkgpath, defs.DEPS_DIR), "--ignore-installed",
                    "-r", os.path.join(pkgpath, "requirements.txt")]
         logger.debug("running pip %s", pipargs)
-        return pip.main(pipargs)
+        return subprocess.check_call([sys.executable, '-m', 'pip'] + pipargs)
     return 0  # pip.main returns retcode
 
 
