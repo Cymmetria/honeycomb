@@ -44,6 +44,9 @@ def install_plugin(pkgpath, plugin_type, install_path, register_func):
     :param:install_path: Path where plugin will be installed.
     :param:register_func: Method used to register and validate plugin.
     """
+    if os.path.exists(os.path.join(install_path, pkgpath)):
+        raise exceptions.PluginAlreadyInstalled(pkgpath)
+
     if os.path.exists(pkgpath):
         logger.debug("%s exists in filesystem", pkgpath)
         if os.path.isdir(pkgpath):
@@ -73,7 +76,7 @@ def install_deps(pkgpath):
         pipargs = ["install", "--target", os.path.join(pkgpath, defs.DEPS_DIR), "--ignore-installed",
                    "-r", os.path.join(pkgpath, "requirements.txt")]
         logger.debug("running pip %s", pipargs)
-        return subprocess.check_call([sys.executable, '-m', 'pip'] + pipargs)
+        return subprocess.check_call([sys.executable, "-m", "pip"] + pipargs)
     return 0  # pip.main returns retcode
 
 

@@ -11,29 +11,33 @@ import click
 from pythonjsonlogger import jsonlogger
 
 from honeycomb import __version__
-from honeycomb.commands import commands_list
 from honeycomb.defs import DEBUG_LOG_FILE, INTEGRATIONS, SERVICES
+from honeycomb.commands import commands_list
+from honeycomb.utils.config_utils import process_config
 
 
 CONTEXT_SETTINGS = dict(
     obj={},
     auto_envvar_prefix="HC",  # all parameters will be taken from HC_PARAMETER first
     max_content_width=120,
-    help_option_names=['-h', '--help'],
+    help_option_names=["-h", "--help"],
 )
 
 logger = logging.getLogger(__name__)
 
 
-@click.group(commands=commands_list, context_settings=CONTEXT_SETTINGS,
-             invoke_without_command=True, no_args_is_help=True)
-@click.pass_context
+@click.group(commands=commands_list, context_settings=CONTEXT_SETTINGS, invoke_without_command=True,
+             no_args_is_help=True)
 @click.option("--home", "-H", default=click.get_app_dir("honeycomb"),
               help="Honeycomb home path", type=click.Path(), show_default=True)
 @click.option("--iamroot", is_flag=True, default=False, help="Force run as root (NOT RECOMMENDED!)")
+# TODO: --config help needs rephrasing
+@click.option("--config", "-c", type=click.Path(exists=True, dir_okay=False, resolve_path=True),
+              help="Path to a honeycomb.yml file that provides instructions")
 @click.option("--verbose", "-v", envvar="DEBUG", is_flag=True, default=False, help="Enable verbose logging")
+@click.pass_context
 @click.version_option(version=__version__)
-def cli(ctx, home, iamroot, verbose):
+def cli(ctx, home, iamroot, config, verbose):
     """Homeycomb is a honeypot framework."""
     _mkhome(home)
     setup_logging(home, verbose)
@@ -57,6 +61,9 @@ def cli(ctx, home, iamroot, verbose):
     ctx.obj["HOME"] = home
 
     logger.debug("ctx: {}".format(ctx.obj))
+
+    if config:
+        return process_config(ctx, config)
 
 
 class MyLogger(logging.Logger):

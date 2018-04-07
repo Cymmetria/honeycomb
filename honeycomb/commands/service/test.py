@@ -37,7 +37,6 @@ def test(ctx, services, force, editable):
         service_path = plugin_utils.get_plugin_path(home, SERVICES, service, editable)
 
         logger.debug("loading {} ({})".format(service, service_path))
-        click.secho("[+] Loading {}".format(service))
         service = register_service(service_path)
         service_module = get_service_module(service_path)
 

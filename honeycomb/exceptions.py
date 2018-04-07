@@ -33,7 +33,7 @@ class BaseHoneycombException(click.ClickException):
         logging.getLogger(__name__).debug(msg, extra=extra)
         if kwargs.get("exc_info") or os.environ.get("DEBUG", False):
             traceback.print_stack(exception_frame)
-        super(BaseHoneycombException, self).__init__(msg)
+        super(BaseHoneycombException, self).__init__(click.style("[-] {}".format(msg), fg="red"))
 
 
 class PathNotFound(BaseHoneycombException):

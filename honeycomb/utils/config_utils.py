@@ -9,6 +9,7 @@ import json
 import logging
 
 import six
+import yaml
 
 from honeycomb import defs, exceptions
 from honeycomb.error_messages import CONFIG_FIELD_TYPE_ERROR
@@ -74,7 +75,7 @@ def validate_field_matches_type(field, value, field_type, select_items=None, _mi
         from honeycomb.utils.plugin_utils import get_select_items
         items = get_select_items(select_items)
         if value not in items:
-            raise exceptions.ConfigFieldTypeMismatch(field, value, 'one of: {}'.format(", ".join(items)))
+            raise exceptions.ConfigFieldTypeMismatch(field, value, "one of: {}".format(", ".join(items)))
 
 
 def get_truetype(value):
@@ -108,3 +109,70 @@ def is_valid_field_name(value):
     if leftovers != "" or value[0].isdigit() or value[0] in ["-", "_"] or " " in value:
         return False
     return True
+
+
+def process_config(ctx, configfile):
+    """Proccess a yaml config with instructions.
+
+    This is a heavy method that loads lots of content, so we only run the imports if its called.
+    """
+    from honeycomb.commands.service.run import run as service_run
+    # from honeycomb.commands.service.logs import logs as service_logs
+    from honeycomb.commands.service.install import install as service_install
+    from honeycomb.commands.integration.install import install as integration_install
+    from honeycomb.commands.integration.configure import configure as integration_configure
+
+    VERSION = "version"
+    SERVICES = defs.SERVICES
+    INTEGRATIONS = defs.INTEGRATIONS
+
+    required_top_keys = [VERSION, SERVICES]
+    supported_versions = [1]
+
+    def validate_yml(config):
+        for key in required_top_keys:
+            if key not in config:
+                raise exceptions.ConfigFieldMissing(key)
+
+        version = config.get(VERSION)
+        if version not in supported_versions:
+            raise exceptions.ConfigFieldTypeMismatch(VERSION, version,
+                                                     "one of: {}".format(repr(supported_versions)))
+
+    def install_plugins(services, integrations):
+        for cmd, kwargs in [(service_install, {SERVICES: services}),
+                            (integration_install, {INTEGRATIONS: integrations})]:
+            try:
+                ctx.invoke(cmd, **kwargs)
+            except SystemExit:
+                # If a plugin is already installed honeycomb will exit abnormaly
+                pass
+
+    def parametets_to_string(parameters_dict):
+        return ["{}={}".format(k, v) for k, v in parameters_dict.items()]
+
+    def configure_integrations(integrations):
+        for integration in integrations:
+            args_list = parametets_to_string(config[INTEGRATIONS][integration].get(defs.PARAMETERS, dict()))
+            ctx.invoke(integration_configure, integration=integration, args=args_list)
+
+    def run_services(services, integrations):
+        # TODO: Enable support with multiple services as daemon, and run service.logs afterwards
+        #       tricky part is that services launched as daemon are exited with os._exit(0) so you
+        #       can't catch it.
+        for service in services:
+            args_list = parametets_to_string(config[SERVICES][service].get(defs.PARAMETERS, dict()))
+            ctx.invoke(service_run, service=service, integration=integrations, args=args_list)
+
+    # TODO: Silence normal stdout and follow honeycomb.debug.json instead
+    #       This would make monitoring containers and collecting logs easier
+    with open(configfile, "rb") as fh:
+        config = yaml.load(fh.read())
+
+    validate_yml(config)
+    services = config.get(SERVICES).keys()
+    integrations = config.get(INTEGRATIONS).keys() if config.get(INTEGRATIONS) else []
+
+    install_plugins(services, integrations)
+    configure_integrations(integrations)
+    run_services(services, integrations)

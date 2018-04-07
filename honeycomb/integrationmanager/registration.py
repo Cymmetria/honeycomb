@@ -36,12 +36,12 @@ def get_integration_module(integration_path):
 
     for path in paths:
         path = os.path.realpath(path)
-        logger.debug('adding %s to path', path)
+        logger.debug("adding %s to path", path)
         sys.path.insert(0, path)
 
     # get our integration class instance
     integration_name = os.path.basename(integration_path)
-    logger.debug('importing %s', ".".join([integration_name, INTEGRATION]))
+    logger.debug("importing %s", ".".join([integration_name, INTEGRATION]))
     return importlib.import_module(".".join([integration_name, INTEGRATION]))
 
 

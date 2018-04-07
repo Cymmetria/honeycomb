@@ -28,8 +28,9 @@ class Integration(object):
     polling_duration = attrib(type=timedelta, default=0)
 
     # TODO: Fix schema differences between custom service and integration config.json
-    name = attrib(type=str, init=False, default=Factory(lambda self: self.display_name.lower().replace(" ", "_"), True))
-    label = attrib(type=str, init=False, default=Factory(lambda self: self.description, True))
+    name = attrib(type=str, init=False, default=Factory(lambda self: self.display_name.lower().replace(" ", "_"),
+                                                        takes_self=True))
+    label = attrib(type=str, init=False, default=Factory(lambda self: self.description, takes_self=True))
 
 
 @attrs

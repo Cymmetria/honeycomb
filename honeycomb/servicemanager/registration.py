@@ -38,13 +38,13 @@ def get_service_module(service_path):
 
     for path in paths:
         path = os.path.realpath(path)
-        logger.debug('adding %s to path', path)
+        logger.debug("adding %s to path", path)
         sys.path.insert(0, path)
 
     # get our service class instance
     service_name = os.path.basename(service_path)
     module = ".".join([service_name, service_name + "_service"])
-    logger.debug('importing %s', module)
+    logger.debug("importing %s", module)
     return importlib.import_module(module)
 
 

@@ -17,6 +17,10 @@ SERVICE_CONFIG_SECTION_KEY = "service"
 ALERT_CONFIG_SECTION_KEY = "event_types"
 SERVICE_ALERT_QUEUE_SIZE = 1000
 
+LOGS_DIR = "logs"
+STDOUTLOG = "stdout.log"
+STDERRLOG = "stderr.log"
+
 """Service section."""
 PORT = "port"
 PORTS = "ports"

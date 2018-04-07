@@ -46,19 +46,3 @@ def search_file_log(filepath, method, args):
                 if cmd(args):
                     return line
         return False
-
-
-def search_json_log(filepath, key, value):
-    """Search json log file for a key=value pair.
-
-    :param filepath: Valid path to a json file
-    :param key: key to match
-    :param value: value to match
-    :returns: First matching line in json log file, parsed by :py:func:`json.loads`
-    """
-    with open(filepath, "r") as fh:
-        for line in fh.readlines():
-                log = json.loads(line)
-                if key in log and log[key] == value:
-                    return log
-        return False

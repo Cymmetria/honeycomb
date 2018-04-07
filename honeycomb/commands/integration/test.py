@@ -31,7 +31,6 @@ def test(ctx, integrations, editable):
         integration_path = plugin_utils.get_plugin_path(home, INTEGRATIONS, integration, editable)
 
         logger.debug("loading {} ({})".format(integration, integration_path))
-        click.secho("[+] Loading {}".format(integration))
         integration = register_integration(integration_path)
         integration_module = get_integration_module(integration_path)
 

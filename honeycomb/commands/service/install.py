@@ -2,10 +2,12 @@
 """Honeycomb service install command."""
 
 import os
+import errno
 import logging
 
 import click
 
+from honeycomb import exceptions
 from honeycomb.defs import SERVICE, SERVICES
 from honeycomb.utils import plugin_utils
 from honeycomb.servicemanager.registration import register_service
@@ -24,5 +26,13 @@ def install(ctx, services, delete_after_install=False):
     home = ctx.obj["HOME"]
     services_path = os.path.join(home, SERVICES)
 
+    installed_all_plugins = True
     for service in services:
-        plugin_utils.install_plugin(service, SERVICE, services_path, register_service)
+        try:
+            plugin_utils.install_plugin(service, SERVICE, services_path, register_service)
+        except exceptions.PluginAlreadyInstalled as exc:
+            click.echo(exc)
+            installed_all_plugins = False
+
+    if not installed_all_plugins:
+        raise ctx.exit(errno.EEXIST)

@@ -49,10 +49,10 @@ class ConfigField(object):
 DEPS_DIR = "venv"
 DEBUG_LOG_FILE = "honeycomb.debug.log"
 
-SERVICE = 'service'
-SERVICES = '{}s'.format(SERVICE)
-INTEGRATION = 'integration'
-INTEGRATIONS = '{}s'.format(INTEGRATION)
+SERVICE = "service"
+SERVICES = "{}s".format(SERVICE)
+INTEGRATION = "integration"
+INTEGRATIONS = "{}s".format(INTEGRATION)
 
 GITHUB_URL = "https://github.com/Cymmetria/honeycomb_services/tree/master/{plugin_type}/{plugin}"
 GITHUB_RAW = "https://cymmetria.github.io/honeycomb_services"

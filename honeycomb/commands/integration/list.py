@@ -32,7 +32,7 @@ def list(ctx, remote):
         integration = register_integration(os.path.join(integrations_path, integration_name))
         supported_event_types = integration.supported_event_types
         if not supported_event_types:
-            supported_event_types = 'All'
+            supported_event_types = "All"
 
         return "{:s} ({:s}) [Supported event types: {}]".format(integration.name, integration.description,
                                                                 supported_event_types)

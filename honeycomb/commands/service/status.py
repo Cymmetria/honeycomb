@@ -20,7 +20,7 @@ def status(ctx, services, show_all):
     logger.debug("running command %s (%s)", ctx.command.name, ctx.params,
                  extra={"command": ctx.command.name, "params": ctx.params})
 
-    home = ctx.obj['HOME']
+    home = ctx.obj["HOME"]
     services_path = os.path.join(home, SERVICES)
 
     def print_status(service):

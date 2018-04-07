@@ -43,7 +43,8 @@ class Alert(object):
 
     event_type = attrib(init=False, type=str)
     manufacturer = attrib(init=False, type=str)
-    event_description = attrib(init=False, type=str, default=Factory(lambda self: self.alert_type.label, True))
+    event_description = attrib(init=False, type=str, default=Factory(lambda self: self.alert_type.label,
+                                                                     takes_self=True))
 
     request = attrib(init=False, type=str)
     dest_ip = attrib(init=False)

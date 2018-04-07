@@ -112,7 +112,7 @@ def send_alert_to_configured_integration(integration_alert):
         alert_fields = dict()
         if integration.required_fields:
             if not all([hasattr(alert, _) for _ in integration.required_fields]):
-                logger.debug('alert does not have all required_fields (%s) for integration %s, skipping',
+                logger.debug("alert does not have all required_fields (%s) for integration %s, skipping",
                              integration.required_fields, integration.name)
                 return
         else:
@@ -122,7 +122,7 @@ def send_alert_to_configured_integration(integration_alert):
                 if hasattr(alert, field) and field not in exclude_fields:
                     alert_fields[field] = getattr(alert, field)
 
-        logger.debug('sending alert %s to %s', alert_fields, integration.name)
+        logger.debug("sending alert %s to %s", alert_fields, integration.name)
         output_data, output_file_content = integration_actions_instance.send_event(alert_fields)
 
         if integration.polling_enabled:
