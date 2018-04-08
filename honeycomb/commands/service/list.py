@@ -30,12 +30,12 @@ def list(ctx, remote):
     def get_service_details(service_name):
         logger.debug("loading {}".format(service_name))
         service = register_service(os.path.join(services_path, service_name))
-        ports = ", ".join("{}/{}".format(port["port"], port["protocol"]) for port in service.ports)
-        s = "{:s} ({}) [Alerts:".format(service.name, ports)
-        for alert in service.alert_types:
-            s += " {}".format(alert.name)
-        s += "]"
-        return s
+        if service.ports:
+            ports = ", ".join("{}/{}".format(port["port"], port["protocol"]) for port in service.ports)
+        else:
+            ports = "Undefined"
+        return "{:s} (Ports: {}) [Alerts: {}]".format(service.name, ports,
+                                                      ", ".join([_.name for _ in service.alert_types]))
 
     installed_services = list_local_plugins(plugin_type, services_path, get_service_details)
 

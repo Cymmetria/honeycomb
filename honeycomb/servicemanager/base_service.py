@@ -86,9 +86,9 @@ class ServerCustomService(Process):
         :param **kwargs: Fields to pass to :py:class:`honeycomb.decoymanager.models.Alert`
         """
         try:
-            alert_type = next(_ for _ in self.alert_types if _.name == kwargs['event_type'])
+            alert_type = next(_ for _ in self.alert_types if _.name == kwargs["event_type"])
         except StopIteration:
-            self.logger.error(INVALID_ALERT_TYPE, kwargs['event_type'])
+            self.logger.error(INVALID_ALERT_TYPE, kwargs["event_type"])
             return
 
         self.logger.critical(kwargs)

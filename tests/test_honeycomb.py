@@ -23,7 +23,7 @@ from tests.utils.test_utils import sanity_check, search_file_log
 DEMO_SERVICE = "simple_http"
 DEMO_SERVICE_PORT = 8888
 DEMO_SERVICE_ARGS = "port={}".format(DEMO_SERVICE_PORT)
-DEMO_SERVICE_PORTS = "{}/TCP".format(DEMO_SERVICE_PORT)
+DEMO_SERVICE_PORTS = "Undefined"
 DEMO_SERVICE_ALERT = "simple_http"
 RUN_HONEYCOMB = "coverage run --parallel-mode --module --source=honeycomb honeycomb".split(" ")
 
@@ -39,7 +39,7 @@ rsession.mount("https://", HTTPAdapter(max_retries=3))
 @pytest.fixture
 def syslogd(tmpdir):
     """Run a syslog server and provide the logfile."""
-    logfile = str(tmpdir.join('syslog.log'))
+    logfile = str(tmpdir.join("syslog.log"))
     syslogd = runSyslogServer(SYSLOG_HOST, SYSLOG_PORT, logfile)
     yield logfile
     syslogd.shutdown()
@@ -50,7 +50,7 @@ def service_installed(tmpdir):
     """Prepare honeycomb home path with DEMO_SERVICE installed."""
     home = str(tmpdir)
     result = CliRunner().invoke(cli, args=args.COMMON_ARGS + [home, defs.SERVICE,
-                                commands.INSTALL, os.path.join("sample_services", DEMO_SERVICE)])
+                                commands.INSTALL, DEMO_SERVICE])
     sanity_check(result, home)
     assert os.path.exists(os.path.join(home, defs.SERVICES, DEMO_SERVICE, "{}_service.py".format(DEMO_SERVICE)))
 
@@ -69,7 +69,7 @@ def integration_installed(service_installed):
     home = service_installed
 
     result = CliRunner().invoke(cli, args=args.COMMON_ARGS + [home, defs.INTEGRATION,
-                                commands.INSTALL, os.path.join("sample_integrations", DEMO_INTEGRATION)])
+                                commands.INSTALL, DEMO_INTEGRATION])
     sanity_check(result, home)
     result = CliRunner().invoke(cli, args=args.COMMON_ARGS + [home, defs.INTEGRATION,
                                 commands.CONFIGURE, DEMO_INTEGRATION] + DEMO_INTEGRATION_ARGS.split(" "))
@@ -191,8 +191,8 @@ def test_service_list_local(service_installed):
     """Test the service list command with a service installed."""
     result = CliRunner().invoke(cli, args=args.COMMON_ARGS + [service_installed, defs.SERVICE, "list"])
     sanity_check(result, service_installed)
-    assert "{} ({}) [Alerts: {}]".format(DEMO_SERVICE, DEMO_SERVICE_PORTS,
-                                         DEMO_SERVICE_ALERT) in result.output, result.output
+    assert "{} (Ports: {}) [Alerts: {}]".format(DEMO_SERVICE, DEMO_SERVICE_PORTS,
+                                                DEMO_SERVICE_ALERT) in result.output, result.output
 
 
 def test_service_show_remote_not_installed(tmpdir):
