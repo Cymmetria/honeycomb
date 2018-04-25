@@ -22,14 +22,7 @@ class MyGroup(click.Group):
         """
         click.Group.__init__(self, **kwargs)
         self.folder = os.path.join(cwd, folder)
-        # self.commands = self._get_commands()
-
-    # def _get_commands(self):
-    #     commands = {}
-    #     for command in self.list_commands(self):
-    #         commands[command] = self.get_command(self, command)
-    #
-    #     return commands
+        self.name = folder
 
     def list_commands(self, ctx):
         """List commands from folder."""

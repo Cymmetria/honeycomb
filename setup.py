@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Homeycomb is a honeypot framework
+Honeycomb is a honeypot framework
 """
 from __future__ import absolute_import
 
@@ -11,13 +11,13 @@ with open('requirements.txt') as fp:
     install_requires = fp.read()
 
 setup(
-    name='honeycomb',
+    name='honeycomb_framework',
     version=__version__,
     url='https://github.com/Cymmetria/honeycomb',
     license='MIT',
     author='Honeycomb - Honeypot Framework',
     author_email='omer.cohen@cymmetria.com',
-    description='Homeycomb is a honeypot framework',
+    description='Honeycomb is a honeypot framework',
     long_description=__doc__,
     packages=find_packages(exclude=['tests']),
     include_package_data=True,
