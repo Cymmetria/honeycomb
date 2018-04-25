@@ -1,5 +1,5 @@
-tox
-sphinx
-requests
-sphinx_click
+tox==3.0.0
+sphinx==1.7.3
+requests==2.18.4
+sphinx_click==1.1.0
 -r requirements.txt
