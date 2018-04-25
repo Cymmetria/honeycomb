@@ -54,9 +54,9 @@ SERVICES = "{}s".format(SERVICE)
 INTEGRATION = "integration"
 INTEGRATIONS = "{}s".format(INTEGRATION)
 
-GITHUB_URL = "https://github.com/Cymmetria/honeycomb_services/tree/master/{plugin_type}/{plugin}"
-GITHUB_RAW = "https://cymmetria.github.io/honeycomb_services"
-GITHUB_RAW_URL = "https://raw.githubusercontent.com/Cymmetria/honeycomb_services/master/" \
+GITHUB_URL = "https://github.com/Cymmetria/honeycomb_plugins/tree/master/{plugin_type}/{plugin}"
+GITHUB_RAW = "https://cymmetria.github.io/honeycomb_plugins"
+GITHUB_RAW_URL = "https://raw.githubusercontent.com/Cymmetria/honeycomb_plugins/master/" \
                  "{plugin_type}/{plugin}/{filename}"
 
 
