@@ -49,7 +49,7 @@ def configure_integration(path):
                                    .format(os.path.basename(path)))
 
     click.secho("[*] Adding integration {}".format(integration.name))
-    logger.debug("adding integration %s", integration.name,
+    logger.debug("Adding integration %s", integration.name,
                  extra={"integration": integration.name, "args": integration_args})
     configured_integration = ConfiguredIntegration(name=integration.name, integration=integration, path=path)
     configured_integration.data = integration_args
@@ -90,7 +90,7 @@ def get_valid_configured_integrations(alert):
 
 
 def create_integration_alert_and_call_send(alert, configured_integration):
-    """Create IntegrationAlert object and send to Integration."""
+    """Create an IntegrationAlert object and send it to Integration."""
     integration_alert = IntegrationAlert(
         alert=alert,
         configured_integration=configured_integration,
@@ -112,8 +112,9 @@ def send_alert_to_configured_integration(integration_alert):
         alert_fields = dict()
         if integration.required_fields:
             if not all([hasattr(alert, _) for _ in integration.required_fields]):
-                logger.debug("alert does not have all required_fields (%s) for integration %s, skipping",
-                             integration.required_fields, integration.name)
+                logger.debug("Alert does not have all required_fields (%s) for integration %s, skipping",
+                             integration.required_fields,
+                             integration.name)
                 return
         else:
             exclude_fields = ["alert_type", "service_type"]
@@ -122,7 +123,7 @@ def send_alert_to_configured_integration(integration_alert):
                 if hasattr(alert, field) and field not in exclude_fields:
                     alert_fields[field] = getattr(alert, field)
 
-        logger.debug("sending alert %s to %s", alert_fields, integration.name)
+        logger.debug("Sending alert %s to %s", alert_fields, integration.name)
         output_data, output_file_content = integration_actions_instance.send_event(alert_fields)
 
         if integration.polling_enabled:
@@ -133,16 +134,17 @@ def send_alert_to_configured_integration(integration_alert):
 
         integration_alert.send_time = get_current_datetime_utc()
         integration_alert.output_data = json.dumps(output_data)
-        # TODO: do something with succesfully handeled alerts? They are all writted to debug log file
+        # TODO: do something with succesfully handled alerts? They are all writted to debug log file
 
     except exceptions.IntegrationMissingRequiredFieldError as exc:
-        logger.exception("Send response formatting for integration alert {} failed. Missing required fields"
-                         .format(integration_alert), exc.message)
+        logger.exception("Send response formatting for integration alert %s failed. Missing required fields",
+                         integration_alert,
+                         exc.message)
 
         integration_alert.status = IntegrationAlertStatuses.ERROR_MISSING_SEND_FIELDS.name
 
     except exceptions.IntegrationOutputFormatError:
-        logger.exception("Send response formatting for integration alert {} failed".format(integration_alert))
+        logger.exception("Send response formatting for integration alert %s failed", integration_alert)
 
         integration_alert.status = IntegrationAlertStatuses.ERROR_SENDING_FORMATTING.name
 
@@ -152,8 +154,10 @@ def send_alert_to_configured_integration(integration_alert):
         send_retries_left = integration_send_retries - 1
         integration_alert.retries = send_retries_left
 
-        logger.error("Sending integration alert {} failed. Message: {}. Retries left: {}"
-                     .format(integration_alert, exc.message, send_retries_left))
+        logger.error("Sending integration alert %s failed. Message: %s. Retries left: %s",
+                     integration_alert,
+                     exc.message,
+                     send_retries_left)
 
         if send_retries_left == 0:
             integration_alert.status = IntegrationAlertStatuses.ERROR_SENDING.name
@@ -168,7 +172,7 @@ def poll_integration_information_for_waiting_integration_alerts():
     if not polling_integration_alerts:
         return
 
-    logger.debug("polling information for waiting integration alerts")
+    logger.debug("Polling information for waiting integration alerts")
 
     for integration_alert in polling_integration_alerts:
         configured_integration = integration_alert.configured_integration
@@ -176,7 +180,7 @@ def poll_integration_information_for_waiting_integration_alerts():
         polling_duration = integration.polling_duration
 
         if get_current_datetime_utc() - integration_alert.send_time > polling_duration:
-            logger.debug("polling duration expired for integration alert {}".format(integration_alert))
+            logger.debug("Polling duration expired for integration alert %s", integration_alert)
             integration_alert.status = IntegrationAlertStatuses.ERROR_POLLING.name
         else:
             integration_alert.status = IntegrationAlertStatuses.IN_POLLING.name
@@ -186,7 +190,7 @@ def poll_integration_information_for_waiting_integration_alerts():
 
 def poll_integration_alert_data(integration_alert):
     """Poll for updates on waiting IntegrationAlerts."""
-    logger.info("polling information for integration alert {}".format(integration_alert))
+    logger.info("Polling information for integration alert %s", integration_alert)
     try:
         configured_integration = integration_alert.configured_integration
         integration_actions_instance = configured_integration.integration.module
@@ -200,55 +204,20 @@ def poll_integration_alert_data(integration_alert):
         polling_integration_alerts.remove(integration_alert)
 
     except exceptions.IntegrationNoMethodImplementationError:
-        logger.error("No poll_for_updates function found for integration alert {}".format(integration_alert))
+        logger.error("No poll_for_updates function found for integration alert %s", integration_alert)
 
         integration_alert.status = IntegrationAlertStatuses.ERROR_POLLING.name
 
     except exceptions.IntegrationPollEventError:
         # This does not always indicate an error, this is also raised when need to try again later
-        logger.debug("polling for integration alert {} failed".format(integration_alert))
+        logger.debug("Polling for integration alert %s failed", integration_alert)
 
     except exceptions.IntegrationOutputFormatError:
-        logger.error("integration alert {} formatting error".format(integration_alert))
+        logger.error("Integration alert %s formatting error", integration_alert)
 
         integration_alert.status = IntegrationAlertStatuses.ERROR_POLLING_FORMATTING.name
 
     except Exception:
-        logger.exception("Error polling integration alert {}".format(integration_alert))
+        logger.exception("Error polling integration alert %s", integration_alert)
 
         integration_alert.status = IntegrationAlertStatuses.ERROR_POLLING.name
-
-
-# def resend_configuration_failed_integration_alerts(configured_integration_id):
-#     """resend_configuration_failed_integration_alerts."""
-#     logger.info("resend_configuration_failed_integration_alerts for configured integration: {}".format(
-#         configured_integration_id))
-#     configured_integration = None
-#
-#     try:
-#         configured_integration = ConfiguredIntegration.objects.get(id=configured_integration_id)
-#         failed_integration_alerts_list = configured_integration.integrationalert_set.filter(
-#             status=IntegrationAlertStatuses.ERROR_SENDING.name)
-#
-#         for integration_alert in failed_integration_alerts_list:
-#             resend_failed_integration_alert_helper(integration_alert)
-#
-#     except ConfiguredIntegration.DoesNotExist:
-#         logger.info("resend_configuration_failed_integration_alerts called for deleted configured integration {}".
-#                     format(configured_integration_id))
-#
-#     except Exception:
-#         logger.exception("Error in resend_configuration_failed_integration_alerts for configured integration {}".
-#                          format(configured_integration_id))
-#
-#     finally:
-#         if configured_integration:
-#             configured_integration.configuring = False
-#             configured_integration.save()
-#
-# def resend_failed_integration_alert_helper(integration_alert):
-#     """resend_failed_integration_alert_helper."""
-#     integration_alert.status = IntegrationAlertStatuses.PENDING.name
-#     integration_alert.retries = integration_alert.configured_integration.integration.max_send_retries
-#
-#     send_alert_to_configured_integration(integration_alert)

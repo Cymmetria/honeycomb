@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class BaseIntegration(object):
     """Base Output Integration Class.
 
-    Will be overriden by output plugins.
+    Will be overridden by output plugins.
     """
 
     __metaclass__ = ABCMeta

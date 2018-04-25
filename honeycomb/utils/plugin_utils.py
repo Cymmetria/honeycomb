@@ -20,6 +20,26 @@ from honeycomb.utils import config_utils
 
 logger = logging.getLogger(__name__)
 
+try:
+    O_BINARY = os.O_BINARY
+except Exception:
+    O_BINARY = 0
+
+READ_FLAGS = os.O_RDONLY | O_BINARY
+WRITE_FLAGS = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | O_BINARY
+BUFFER_SIZE = 128*1024
+
+
+class CTError(Exception):
+    """Copytree exception class, used to collect errors from the recursive copy_tree function."""
+
+    def __init__(self, errors):
+        """Collect errors.
+
+        :param:errors: Collected errors
+        """
+        self.errors = errors
+
 
 def get_plugin_path(home, plugin_type, plugin_name, editable=False):
     """Return path to plugin.
@@ -80,6 +100,66 @@ def install_deps(pkgpath):
     return 0  # pip.main returns retcode
 
 
+def copy_file(src, dst):
+    """Copy a single file.
+
+    :param:src: Source name
+    :param:dst: Destination name
+    """
+    try:
+        fin = os.open(src, READ_FLAGS)
+        stat = os.fstat(fin)
+        fout = os.open(dst, WRITE_FLAGS, stat.st_mode)
+        for x in iter(lambda: os.read(fin, BUFFER_SIZE), b""):
+            os.write(fout, x)
+    finally:
+        try:
+            os.close(fin)
+        except Exception as exc:
+            logger.debug("Failed to close file handle when copying: {}".format(exc))
+        try:
+            os.close(fout)
+        except Exception as exc:
+            logger.debug("Failed to close file handle when copying: {}".format(exc))
+
+
+# Due to speed issues, shutil.copytree had to be swapped out for something faster.
+# The solution was to copy (and slightly refactor) the code from:
+# https://stackoverflow.com/questions/22078621/python-how-to-copy-files-fast
+def copy_tree(src, dst, symlinks=False, ignore=[]):
+    """Copy a full directory structure.
+
+    :param:src: Source path
+    :param:dst: Destination path
+    :param:symlinks: Copy symlinks
+    :param:ignore: Subdirs/filenames to ignore
+    """
+    names = os.listdir(src)
+
+    if not os.path.exists(dst):
+        os.makedirs(dst)
+    errors = []
+    for name in names:
+        if name in ignore:
+            continue
+        srcname = os.path.join(src, name)
+        dstname = os.path.join(dst, name)
+        try:
+            if symlinks and os.path.islink(srcname):
+                linkto = os.readlink(srcname)
+                os.symlink(linkto, dstname)
+            elif os.path.isdir(srcname):
+                copy_tree(srcname, dstname, symlinks, ignore)
+            else:
+                copy_file(srcname, dstname)
+        except (IOError, os.error) as exc:
+            errors.append((srcname, dstname, str(exc)))
+        except CTError as exc:
+            errors.extend(exc.errors)
+    if errors:
+        raise CTError(errors)
+
+
 def install_dir(pkgpath, install_path, register_func, delete_after_install=False):
     """Install plugin from specified directory.
 
@@ -90,12 +170,12 @@ def install_dir(pkgpath, install_path, register_func, delete_after_install=False
     plugin = register_func(pkgpath)
     logger.debug("%s looks good, copying to %s", pkgpath, install_path)
     try:
-        shutil.copytree(pkgpath, os.path.join(install_path, plugin.name))
+        copy_tree(pkgpath, os.path.join(install_path, plugin.name))
         if delete_after_install:
             logger.debug("deleting %s", pkgpath)
             shutil.rmtree(pkgpath)
         pkgpath = os.path.join(install_path, plugin.name)
-    except OSError as exc:
+    except (OSError, CTError) as exc:
         # TODO: handle package name exists (upgrade? overwrite?)
         logger.debug(str(exc), exc_info=True)
         raise exceptions.PluginAlreadyInstalled(plugin.name)

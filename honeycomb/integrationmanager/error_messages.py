@@ -14,7 +14,7 @@ TEST_CONNECTION_GENERAL_ERROR = "An error occurred while testing connection"
 INVALID_INTEGRATIONS_ACTIONS_FILE = "Invalid {} file".format(ACTIONS_FILE_NAME)
 INVALID_INTEGER = "Value must be an integer"
 
-ERROR_SENDING_PREFIX = "Sending alert data to '{}' failed."
+ERROR_SENDING_PREFIX = "Sending alert data to '{}' failed"
 
 INTEGRATION_NOT_FOUND_ERROR = "Cannot find integration named {}, try installing it?"
 

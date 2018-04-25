@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Hooneycomb defs and constants."""
+"""Honeycomb defs and constants."""
 
 from __future__ import unicode_literals, absolute_import
 

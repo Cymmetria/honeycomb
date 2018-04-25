@@ -36,9 +36,9 @@ logger = logging.getLogger(__name__)
               help="Path to a honeycomb.yml file that provides instructions")
 @click.option("--verbose", "-v", envvar="DEBUG", is_flag=True, default=False, help="Enable verbose logging")
 @click.pass_context
-@click.version_option(version=__version__)
+@click.version_option(version=__version__, message="Honeycomb, version %(version)s")
 def cli(ctx, home, iamroot, config, verbose):
-    """Homeycomb is a honeypot framework."""
+    """Honeycomb is a honeypot framework."""
     _mkhome(home)
     setup_logging(home, verbose)
 
@@ -70,7 +70,8 @@ class MyLogger(logging.Logger):
     """Custom Logger."""
 
     def makeRecord(self, name, level, fn, lno, msg, args, exc_info, func=None, extra=None, sinfo=None):
-        """Override default logger to allow overridding internal attributes."""
+        """Override default logger to allow overriding of internal attributes."""
+        # See below commented section for a simple example of what the docstring refers to
         if six.PY2:
             rv = logging.LogRecord(name, level, fn, lno, msg, args, exc_info, func)
         else:
@@ -126,7 +127,6 @@ def setup_logging(home, verbose):
 
 
 def _mkhome(home):
-
     def mkdir_if_not_exists(path):
         try:
             if not os.path.exists(path):
