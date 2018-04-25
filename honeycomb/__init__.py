@@ -3,7 +3,7 @@
 
 from __future__ import unicode_literals, absolute_import
 
-version = (0, 0, 8)
+version = (0, 0, 9)
 
 __version__ = ".".join(str(x) for x in version)
 
