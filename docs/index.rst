@@ -1,3 +1,8 @@
-.. click:: honeycomb.cli:cli
-   :prog: Honeycomb
-   :show-nested:
+.. include:: ../README.rst
+
+.. toctree::
+    :maxdepth: 3
+
+    cli
+    using-docker
+    modules

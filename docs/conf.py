@@ -18,7 +18,7 @@ import honeycomb
 
 project = u'Honeycomb'
 copyright = u'2018, Cymmetria'
-author = u'Cymmetria'
+author = u'Omer Cohen'
 
 # The short X.Y version
 version = honeycomb.__version__

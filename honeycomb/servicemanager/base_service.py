@@ -83,7 +83,7 @@ class ServerCustomService(Process):
     def emit(self, **kwargs):
         """Send alerts to logfile.
 
-        :param **kwargs: Fields to pass to :py:class:`honeycomb.decoymanager.models.Alert`
+        :param kwargs: Fields to pass to :py:class:`honeycomb.decoymanager.models.Alert`
         """
         try:
             alert_type = next(_ for _ in self.alert_types if _.name == kwargs["event_type"])

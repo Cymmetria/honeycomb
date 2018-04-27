@@ -1,0 +1,14 @@
+---
+version: 1
+
+services:
+  simple_http:
+    parameters:
+      port: 1234
+
+integrations:
+  syslog:
+    parameters:
+      address: "127.0.0.1"
+      port: 5514
+      protocol: tcp

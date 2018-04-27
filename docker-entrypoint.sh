@@ -2,7 +2,7 @@
 
 isCommand() {
   for cmd in "service" \
-  			 "intergration"
+             "intergration"
   do
     if [ -z "${cmd#"$1"}" ]; then
       return 0

@@ -26,11 +26,14 @@ def wait_until(func,
                **kwargs):
     """Run a command in a loop until desired result or timeout occurs.
 
-    :param check_return_value:
-    until total_timeout seconds,
-    for interval seconds interval,
-    while catching exceptions given in exc_list.
-    If it ends in time, it re-returns the return value from the called function.
+    :param func: Function to call and wait for
+    :param bool check_return_value: Examine return value
+    :param int total_timeout: Wait timeout,
+    :param float interval: Sleep interval between retrys
+    :param list exc_list: Acceptable exception list
+    :param str error_message: Default error messages
+    :param args: args to pass to func
+    :param kwargs: lwargs to pass to fun
     """
     start_function = time.time()
     while time.time() - start_function < total_timeout:
