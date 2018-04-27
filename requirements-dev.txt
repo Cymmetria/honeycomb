@@ -1,5 +1,4 @@
 tox==3.0.0
 sphinx==1.7.4
-requests==2.18.4
 sphinx-click==1.1.0
 -r requirements.txt
