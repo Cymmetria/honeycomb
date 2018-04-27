@@ -28,7 +28,7 @@ def config_field_type(field, cls):
 
 
 def validate_config(config_json, fields):
-    """Validate a JSON file configuration against list of :obj:`honeycomb.defs.ConfigField`"""
+    """Validate a JSON file configuration against list of :obj:`honeycomb.defs.ConfigField`."""
     for field_name, validator_obj in six.iteritems(fields):
         field_value = config_json.get(field_name, None)
         if field_value is None:
