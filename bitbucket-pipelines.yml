@@ -1,7 +1,0 @@
-pipelines:
-  default:
-    - step:
-        name: tox
-        image: omercnet/tox
-        script:
-          - tox
