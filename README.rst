@@ -31,3 +31,17 @@ Honeycomb allows running honeypots with various integrations from a public libra
 
 Writing new honeypot services and integrations for honeycomb is super easy!
 See the plugins repo for more info.
+
+Full CLI documentation can be found at http://honeycomb.cymmetria.com/en/latest/cli.html
+
+Usage
+-----
+
+Using pip::
+
+    $ pip install honeycomb-framework
+    $ honeycomb --help
+
+Using Docker::
+
+    $ docker run -v honeycomb.yml:/usr/share/honeycomb/honeycomb.yml cymmetria/honeycomb
