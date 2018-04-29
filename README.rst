@@ -6,7 +6,7 @@
 .. |PyPI| image:: https://img.shields.io/pypi/v/honeycomb-framework.svg
    :alt: PyPI
    :target: https://pypi.org/project/honeycomb-framework/
-.. |Read the Docs| image:: https://img.shields.io/readthedocs/pip.svg
+.. |Read the Docs| image:: https://img.shields.io/readthedocs/honeycomb.svg
    :alt: Read the Docs
    :target: http://honeycomb.cymmetria.com
 .. |Travis| image:: https://img.shields.io/travis/Cymmetria/honeycomb.svg
@@ -15,7 +15,7 @@
 .. |Updates| image:: https://pyup.io/repos/github/Cymmetria/honeycomb/shield.svg
     :target: https://pyup.io/repos/github/Cymmetria/honeycomb/
     :alt: Updates
-.. |Codecov| image:: https://img.shields.io/codecov/c/github/codecov/example-python.svg
+.. |Codecov| image:: https://img.shields.io/codecov/c/github/Cymmetria/honeycomb.svg
    :alt: Codecov
    :target: https://codecov.io/gh/Cymmetria/honeycomb
 
