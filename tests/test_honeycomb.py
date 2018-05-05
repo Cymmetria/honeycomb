@@ -94,10 +94,12 @@ def running_service(service_installed, request):
     cmdargs = args.COMMON_ARGS + [service_installed, defs.SERVICE, commands.RUN, DEMO_SERVICE]
     cmd = RUN_HONEYCOMB + cmdargs + request.param
     p = subprocess.Popen(cmd, env=os.environ)
-    sanity_check(home=service_installed)
     assert wait_until(search_json_log, filepath=os.path.join(service_installed, defs.DEBUG_LOG_FILE), total_timeout=10,
                       key="message", value="Starting Simple HTTP service on port: {}".format(DEMO_SERVICE_PORT))
+    assert sanity_check(home=service_installed)
+
     yield service_installed
+
     p.send_signal(signal.SIGINT)
     p.wait()
 
@@ -162,6 +164,30 @@ def test_cli_help():
     """Test honeycomb launches without an error (tests :func:`honeycomb.cli`)."""
     result = CliRunner().invoke(cli, args=[args.HELP])
     sanity_check(result)
+
+
+def test_service_command():
+    """Test honeycomb service command."""
+    result = CliRunner().invoke(cli, args=[defs.SERVICE, args.HELP])
+    sanity_check(result)
+
+
+def test_integration_command():
+    """Test honeycomb integration command."""
+    result = CliRunner().invoke(cli, args=[defs.INTEGRATION, args.HELP])
+    sanity_check(result)
+
+
+def test_invalid_command():
+    """Test honeycomb invalud command."""
+    result = CliRunner().invoke(cli, args=["nosuchcommand", args.HELP])
+    sanity_check(result, fail=True)
+
+
+def test_invalid_subcommand():
+    """Test honeycomb invalud command."""
+    result = CliRunner().invoke(cli, args=[defs.SERVICE, "nosuchsubcommand", args.HELP])
+    sanity_check(result, fail=True)
 
 
 @pytest.mark.dependency(name="service_install_uninstall")

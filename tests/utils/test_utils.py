@@ -15,7 +15,7 @@ def sanity_check(result=None, home=None, fail=False):
         assert (result.exit_code == 0 if not fail else not 0), "\n{}\n{}".format(result.output, repr(result.exception))
         assert (result.exception != fail), "{}\n\n\n{}".format(result.output, repr(result.exception))
     if home:
-        json_log_is_valid(home)
+        assert json_log_is_valid(home)
 
 
 def json_log_is_valid(path):
