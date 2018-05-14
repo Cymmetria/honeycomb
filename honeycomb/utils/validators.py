@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Hooneycomb generic validators."""
+"""Honeycomb generic validators."""
 from __future__ import unicode_literals, absolute_import
 
 import socket

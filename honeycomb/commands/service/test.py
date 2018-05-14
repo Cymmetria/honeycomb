@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 @click.argument("services", nargs=-1)
 @click.option("-f", "--force", is_flag=True, default=False, help="Do not check if service is running before testing")
 @click.option("-e", "--editable", is_flag=True, default=False,
-              help="Run service directly from spefified path (main for dev)")
+              help="Run service directly from specified path (main for dev)")
 def test(ctx, services, force, editable):
     """Execute the service's internal test method to verify it's working as intended.
 
@@ -77,7 +77,7 @@ def test(ctx, services, force, editable):
                 except TimeoutException:
                     raise click.ClickException("failed to test alert: {}".format(event_type))
 
-                click.secho("{} alert tested succesfully".format(event_type))
+                click.secho("{} alert tested successfully".format(event_type))
 
         elif hasattr(service, "ports") and len(service.ports) > 0:
             click.secho("[+] No internal test method found, only testing ports are open")

@@ -8,7 +8,7 @@ from honeycomb.servicemanager import error_messages
 
 
 class ServiceManagerException(honeycomb.exceptions.PluginError):
-    """Generic Seriver Manager Exception."""
+    """Generic Service Manager Exception."""
 
 
 class ServiceNotFound(ServiceManagerException):

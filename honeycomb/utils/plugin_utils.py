@@ -185,7 +185,7 @@ def install_dir(pkgpath, install_path, register_func, delete_after_install=False
 
 def install_from_zip(pkgpath, install_path, register_func, delete_after_install=False):
     """Install plugin from zipfile."""
-    logger.debug("%s is a file, atttempting to load zip", pkgpath)
+    logger.debug("%s is a file, attempting to load zip", pkgpath)
     pkgtempdir = tempfile.mkdtemp(prefix="honeycomb_")
     try:
         with zipfile.ZipFile(pkgpath) as pkgzip:
@@ -254,7 +254,7 @@ def uninstall_plugin(pkgpath, force):
                           abort=True)
         try:
             shutil.rmtree(pkgpath)
-            logger.debug("succesfully uninstalled {}".format(pkgname))
+            logger.debug("successfully uninstalled {}".format(pkgname))
             click.secho("[*] Uninstalled {}".format(pkgname))
         except OSError as exc:
             logger.exception(str(exc))
@@ -316,7 +316,7 @@ def parse_plugin_args(command_args, config_args):
             # will raise if invalid
             config_utils.validate_field_matches_type(value, parsed_args[value], value_type,
                                                      arg.get(defs.ITEMS), arg.get(defs.MIN), arg.get(defs.MAX))
-        elif defs.DEFAULT in arg:  # Has a default feild
+        elif defs.DEFAULT in arg:  # Has a default field
             # return default values for unset parameters
             parsed_args[value] = arg[defs.DEFAULT]
         elif arg[defs.REQUIRED]:  # requires field is true
@@ -350,7 +350,7 @@ def _parse_select_options(arg):
 
 
 def print_plugin_args(plugin_path):
-    """Pring plugin parameters table."""
+    """Print plugin parameters table."""
     args = config_utils.get_config_parameters(plugin_path)
     args_format = "{:20} {:10} {:^15} {:^10} {:25}"
     title = args_format.format(defs.NAME.upper(), defs.TYPE.upper(), defs.DEFAULT.upper(),

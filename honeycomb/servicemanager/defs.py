@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Hooneycomb services definitions and constants."""
+"""Honeycomb services definitions and constants."""
 
 from __future__ import unicode_literals, absolute_import
 

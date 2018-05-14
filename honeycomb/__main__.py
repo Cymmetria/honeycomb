@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Honeycomb main entry point.
 
-This file allows runnign honeycomb as a module directly without calling a method
+This file allows running honeycomb as a module directly without calling a method
 .. code-block:: bash
     $ python -m honeycomb --help
 """

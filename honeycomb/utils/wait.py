@@ -29,7 +29,7 @@ def wait_until(func,
     :param func: Function to call and wait for
     :param bool check_return_value: Examine return value
     :param int total_timeout: Wait timeout,
-    :param float interval: Sleep interval between retrys
+    :param float interval: Sleep interval between retries
     :param list exc_list: Acceptable exception list
     :param str error_message: Default error messages
     :param args: args to pass to func

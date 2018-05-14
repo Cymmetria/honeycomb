@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 @click.argument("integration")
 @click.argument("args", nargs=-1)
 @click.option("-e", "--editable", is_flag=True, default=False,
-              help="Load integration directly from spefified path without installing (mainly for dev)")
+              help="Load integration directly from unspecified path without installing (mainly for dev)")
 @click.option("-a", "--show_args", is_flag=True, default=False, help="Show available integration arguments")
 def configure(ctx, integration, args, show_args, editable):
     """Configure an integration with default parameters.

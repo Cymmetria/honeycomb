@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Honeycomb serivce manager."""
+"""Honeycomb service manager."""
 
 from __future__ import unicode_literals, absolute_import
 
