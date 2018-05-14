@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Hooneycomb service models."""
+"""Honeycomb service models."""
 
 from __future__ import unicode_literals, absolute_import
 

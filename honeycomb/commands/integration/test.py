@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 @click.pass_context
 @click.argument("integrations", nargs=-1)
 @click.option("-e", "--editable", is_flag=True, default=False,
-              help="Run integration directly from spefified path (main for dev)")
+              help="Run integration directly from specified path (main for dev)")
 def test(ctx, integrations, editable):
     """Execute the integration's internal test method to verify it's working as intended."""
     logger.debug("running command %s (%s)", ctx.command.name, ctx.params,

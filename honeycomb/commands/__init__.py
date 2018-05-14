@@ -36,7 +36,10 @@ class MyGroup(click.Group):
     def get_command(self, ctx, name):
         """Fetch command from folder."""
         plugin = os.path.basename(self.folder)
-        command = importlib.import_module("honeycomb.commands.{}.{}".format(plugin, name))
+        try:
+            command = importlib.import_module("honeycomb.commands.{}.{}".format(plugin, name))
+        except ImportError:
+            raise click.UsageError("No such command {} {}\n\n{}".format(plugin, name, self.get_help(ctx)))
         return getattr(command, name)
 
 

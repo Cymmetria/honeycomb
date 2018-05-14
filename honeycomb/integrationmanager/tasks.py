@@ -134,7 +134,7 @@ def send_alert_to_configured_integration(integration_alert):
 
         integration_alert.send_time = get_current_datetime_utc()
         integration_alert.output_data = json.dumps(output_data)
-        # TODO: do something with succesfully handled alerts? They are all writted to debug log file
+        # TODO: do something with successfully handled alerts? They are all written to debug log file
 
     except exceptions.IntegrationMissingRequiredFieldError as exc:
         logger.exception("Send response formatting for integration alert %s failed. Missing required fields",

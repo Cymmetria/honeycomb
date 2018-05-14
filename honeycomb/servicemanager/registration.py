@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Honeycomb serivce manager."""
+"""Honeycomb service manager."""
 
 from __future__ import unicode_literals, absolute_import
 
@@ -62,7 +62,7 @@ def register_service(package_folder):
 
     json_config_path = os.path.join(package_folder, CONFIG_FILE_NAME)
     if not os.path.exists(json_config_path):
-        raise ConfigFileNotFound()
+        raise ConfigFileNotFound(json_config_path)
 
     with open(json_config_path, "r") as f:
         config_json = json.load(f)

@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 @click.command(short_help="Stop a running service daemon")
 @click.argument("service")
 @click.option("-e", "--editable", is_flag=True, default=False,
-              help="Load service directly from spefified path without installing (mainly for dev)")
+              help="Load service directly from specified path without installing (mainly for dev)")
 @click.pass_context
 def stop(ctx, service, editable):
     """Stop a running service daemon."""

@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 @click.argument("args", nargs=-1)
 @click.option("-d", "--daemon", is_flag=True, default=False, help="Run service in daemon mode")
 @click.option("-e", "--editable", is_flag=True, default=False,
-              help="Load service directly from spefified path without installing (mainly for dev)")
+              help="Load service directly from specified path without installing (mainly for dev)")
 @click.option("-a", "--show-args", is_flag=True, default=False, help="Show available service arguments")
 @click.option("-i", "--integration", multiple=True, help="Enable an integration")
 def run(ctx, service, args, show_args, daemon, editable, integration):

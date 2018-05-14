@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Honetcomb integration models."""
+"""Honeycomb integration models."""
 from __future__ import unicode_literals, absolute_import
 
 

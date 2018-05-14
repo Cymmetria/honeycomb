@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Hooneycomb services error messages."""
+"""Honeycomb services error messages."""
 
 from __future__ import unicode_literals, absolute_import
 

@@ -9,7 +9,7 @@ import click
 
 from honeycomb.defs import SERVICES
 from honeycomb.utils.tailer import Tailer
-from honeycomb.servicemanager.defs import STDERRLOG, LOGS_DIR
+from honeycomb.servicemanager.defs import STDOUTLOG, LOGS_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ def logs(ctx, services, num, follow):
 
     tail_threads = []
     for service in services:
-        logpath = os.path.join(services_path, service, LOGS_DIR, STDERRLOG)
+        logpath = os.path.join(services_path, service, LOGS_DIR, STDOUTLOG)
         if os.path.exists(logpath):
             logger.debug("tailing %s", logpath)
             # TODO: Print log lines from multiple services sorted by timestamp

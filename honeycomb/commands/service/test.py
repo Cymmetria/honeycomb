@@ -10,7 +10,7 @@ import click
 
 from honeycomb.defs import DEBUG_LOG_FILE, SERVICES, ARGS_JSON
 from honeycomb.utils import plugin_utils
-from honeycomb.utils.wait import wait_until, search_json_log
+from honeycomb.utils.wait import wait_until, search_json_log, TimeoutException
 from honeycomb.servicemanager.defs import EVENT_TYPE
 from honeycomb.servicemanager.registration import register_service, get_service_module
 
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 @click.argument("services", nargs=-1)
 @click.option("-f", "--force", is_flag=True, default=False, help="Do not check if service is running before testing")
 @click.option("-e", "--editable", is_flag=True, default=False,
-              help="Run service directly from spefified path (main for dev)")
+              help="Run service directly from specified path (main for dev)")
 def test(ctx, services, force, editable):
     """Execute the service's internal test method to verify it's working as intended.
 
@@ -67,15 +67,17 @@ def test(ctx, services, force, editable):
         logger.debug("loaded service {}".format(service_obj))
 
         if hasattr(service_obj, "test"):
-            click.secho("[+] Executing internal test method for service")
+            click.secho("[+] Executing internal test method for service..")
             logger.debug("executing internal test method for service")
             event_types = service_obj.test()
             for event_type in event_types:
-                assert wait_until(search_json_log, filepath=os.path.join(home, DEBUG_LOG_FILE),
-                                  total_timeout=10, key=EVENT_TYPE, value=event_type), ""
-                "failed to test alert: {}".format(event_type)
+                try:
+                    wait_until(search_json_log, filepath=os.path.join(home, DEBUG_LOG_FILE),
+                               total_timeout=10, key=EVENT_TYPE, value=event_type)
+                except TimeoutException:
+                    raise click.ClickException("failed to test alert: {}".format(event_type))
 
-                click.secho("{} alert tested succesfully".format(event_type))
+                click.secho("{} alert tested successfully".format(event_type))
 
         elif hasattr(service, "ports") and len(service.ports) > 0:
             click.secho("[+] No internal test method found, only testing ports are open")

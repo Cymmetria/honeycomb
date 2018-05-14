@@ -112,7 +112,7 @@ def is_valid_field_name(value):
 
 
 def process_config(ctx, configfile):
-    """Proccess a yaml config with instructions.
+    """Process a yaml config with instructions.
 
     This is a heavy method that loads lots of content, so we only run the imports if its called.
     """
@@ -145,15 +145,15 @@ def process_config(ctx, configfile):
             try:
                 ctx.invoke(cmd, **kwargs)
             except SystemExit:
-                # If a plugin is already installed honeycomb will exit abnormaly
+                # If a plugin is already installed honeycomb will exit abnormally
                 pass
 
-    def parametets_to_string(parameters_dict):
+    def parameters_to_string(parameters_dict):
         return ["{}={}".format(k, v) for k, v in parameters_dict.items()]
 
     def configure_integrations(integrations):
         for integration in integrations:
-            args_list = parametets_to_string(config[INTEGRATIONS][integration].get(defs.PARAMETERS, dict()))
+            args_list = parameters_to_string(config[INTEGRATIONS][integration].get(defs.PARAMETERS, dict()))
             ctx.invoke(integration_configure, integration=integration, args=args_list)
 
     def run_services(services, integrations):
@@ -161,7 +161,7 @@ def process_config(ctx, configfile):
         #       tricky part is that services launched as daemon are exited with os._exit(0) so you
         #       can't catch it.
         for service in services:
-            args_list = parametets_to_string(config[SERVICES][service].get(defs.PARAMETERS, dict()))
+            args_list = parameters_to_string(config[SERVICES][service].get(defs.PARAMETERS, dict()))
             ctx.invoke(service_run, service=service, integration=integrations, args=args_list)
 
     # TODO: Silence normal stdout and follow honeycomb.debug.json instead
