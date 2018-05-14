@@ -96,7 +96,7 @@ def running_service(service_installed, request):
     p = subprocess.Popen(cmd, env=os.environ)
     assert wait_until(search_json_log, filepath=os.path.join(service_installed, defs.DEBUG_LOG_FILE), total_timeout=10,
                       key="message", value="Starting Simple HTTP service on port: {}".format(DEMO_SERVICE_PORT))
-    assert sanity_check(home=service_installed)
+    sanity_check(home=service_installed)
 
     yield service_installed
 
