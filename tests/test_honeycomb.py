@@ -179,20 +179,20 @@ def test_integration_command():
 
 
 def test_invalid_command():
-    """Test honeycomb invalud command."""
+    """Test honeycomb invalid command."""
     result = CliRunner().invoke(cli, args=["nosuchcommand", args.HELP])
     sanity_check(result, fail=True)
 
 
 def test_invalid_subcommand():
-    """Test honeycomb invalud command."""
+    """Test honeycomb invalid command."""
     result = CliRunner().invoke(cli, args=[defs.SERVICE, "nosuchsubcommand", args.HELP])
     sanity_check(result, fail=True)
 
 
 @pytest.mark.dependency(name="service_install_uninstall")
 def test_service_install_uninstall(service_installed):
-    """Test the service install and uninstall commmands.
+    """Test the service install and uninstall commands.
 
     This is just mock test for :func:`service_installed` fixture
     """
@@ -291,7 +291,7 @@ def test_service_arg_bad_bool(service_installed):
                         depends=["service_arg_missing", "service_arg_bad_int", "service_arg_bad_bool"])
 @pytest.mark.parametrize("running_service", [[DEMO_SERVICE_ARGS]], indirect=["running_service"])
 def test_service_run(running_service):
-    """Test the service run command and validate the serivce started properly."""
+    """Test the service run command and validate the service started properly."""
     assert wait_until(search_json_log, filepath=os.path.join(running_service, defs.DEBUG_LOG_FILE), total_timeout=10,
                       key="message", value="Starting Simple HTTP service on port: {}".format(DEMO_SERVICE_PORT))
 
@@ -336,7 +336,7 @@ def test_service_status_nonexistent(tmpdir):
 
 
 def test_service_status_no_service(tmpdir):
-    """Test the service status command without a serivce name."""
+    """Test the service status command without a service name."""
     result = CliRunner().invoke(cli, args=args.COMMON_ARGS + [str(tmpdir), defs.SERVICE, commands.STATUS])
     sanity_check(result, str(tmpdir), fail=True)
     assert "You must specify a service name" in result.output, result.output
@@ -349,12 +349,12 @@ def test_service_test(running_daemon):
     result = CliRunner().invoke(cli, args=args.COMMON_ARGS + [running_daemon, defs.SERVICE, commands.TEST,
                                 DEMO_SERVICE])
     sanity_check(result, running_daemon)
-    assert "alert tested succesfully" in result.output, result.output
+    assert "alert tested successfully" in result.output, result.output
 
 
 @pytest.mark.dependency(name="integration_install_uninstall", depends=["service_install_uninstall"])
 def test_integration_install_uninstall(integration_installed):
-    """Test the integration install and uninstall commmands.
+    """Test the integration install and uninstall commands.
 
     This is just mock test for :func:`integration_installed` fixture
     """
@@ -425,7 +425,7 @@ def test_integration_test(integration_installed):
     result = CliRunner().invoke(cli, args=args.COMMON_ARGS + [integration_installed, defs.INTEGRATION,
                                 commands.TEST, DEMO_INTEGRATION])
     sanity_check(result, integration_installed, fail=True)  # TODO: consider replacing with an integration has a test
-    # assert "alert tested succesfully" in result.output, result.output
+    # assert "alert tested successfully" in result.output, result.output
 
 
 @pytest.mark.dependency(name="integration_run", depends=["integration_configured", "service_run"])

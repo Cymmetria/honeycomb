@@ -15,7 +15,7 @@ class SyslogUDPHandler(socketserver.BaseRequestHandler):
     outputHandle = None
 
     def handle(self):
-        """Handle incoming data by logging to debug and writing to logfie."""
+        """Handle incoming data by logging to debug and writing to logfile."""
         data = bytes.decode(self.request[0].strip())
         logger.debug(data)
         self.outputHandle.write(data)
