@@ -34,9 +34,7 @@ class ServerCustomService(Process):
     service_args = attrib(type=dict, default={})
     """Validated dictionary of service arguments (see: :func:`honeycomb.utils.plugin_utils.parse_plugin_args`)"""
 
-    def __init__(self, *args, **kwargs):
-        super(ServerCustomService, self).__init__()
-        self.logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
 
     def signal_ready(self):
         """Signal the service manager this service is ready for incoming connections."""
