@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Honeycomb is a honeypot framework
-"""
+"""Honeycomb is an extensible honeypot framework."""
 from __future__ import absolute_import
 
 from setuptools import find_packages, setup

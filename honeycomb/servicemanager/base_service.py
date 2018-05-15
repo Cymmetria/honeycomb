@@ -22,16 +22,19 @@ from honeycomb.integrationmanager.tasks import send_alert_to_subscribed_integrat
 class ServerCustomService(Process):
     """Custom Service Class.
 
-    This class provides a basic wrapper for honeycomb and mazerunner services.
-
-    :param service_args: Validated dictionary of service arguments (see: :func:`honeycomb.Honeycomb.parse_service_args`)
+    This class provides a basic wrapper for honeycomb (and mazerunner) services.
     """
 
     logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
+    """Logger to be used by plugins and collected by main logger."""
 
     alert_types = attrib(type=list)
+    """List of alert types, parsed from config.json"""
+
     service_args = attrib(type=dict, default={})
+    """Validated dictionary of service arguments (see: :func:`honeycomb.utils.plugin_utils.parse_plugin_args`)"""
+
+    logger.setLevel(logging.DEBUG)
 
     def signal_ready(self):
         """Signal the service manager this service is ready for incoming connections."""
