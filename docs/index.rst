@@ -5,4 +5,5 @@
 
     cli
     using-docker
-    modules
+    plugin_api
+    full_api

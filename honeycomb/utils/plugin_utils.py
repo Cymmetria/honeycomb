@@ -27,7 +27,7 @@ except Exception:
 
 READ_FLAGS = os.O_RDONLY | O_BINARY
 WRITE_FLAGS = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | O_BINARY
-BUFFER_SIZE = 128*1024
+BUFFER_SIZE = 128 * 1024
 
 
 class CTError(Exception):
@@ -36,7 +36,7 @@ class CTError(Exception):
     def __init__(self, errors):
         """Collect errors.
 
-        :param:errors: Collected errors
+        :param errors: Collected errors
         """
         self.errors = errors
 
@@ -44,10 +44,10 @@ class CTError(Exception):
 def get_plugin_path(home, plugin_type, plugin_name, editable=False):
     """Return path to plugin.
 
-    :param:home: Path to honeycomb home
-    :param:plugin_type: Type of plugin (:obj:`honeycomb.defs.SERVICES` pr :obj:`honeycomb.defs.INTEGRATIONS`)
-    :param:plugin_name: Name of plugin
-    :param:editable: Use plugin_name as direct path instead of loading from honeycomb home folder
+    :param home: Path to honeycomb home
+    :param plugin_type: Type of plugin (:obj:`honeycomb.defs.SERVICES` pr :obj:`honeycomb.defs.INTEGRATIONS`)
+    :param plugin_name: Name of plugin
+    :param editable: Use plugin_name as direct path instead of loading from honeycomb home folder
     """
     if editable:
         plugin_path = plugin_name
@@ -60,9 +60,9 @@ def get_plugin_path(home, plugin_type, plugin_name, editable=False):
 def install_plugin(pkgpath, plugin_type, install_path, register_func):
     """Install specified plugin.
 
-    :param:pkgpath: Name of plugin to be downloaded from online repo or path to plugin folder or zip file.
-    :param:install_path: Path where plugin will be installed.
-    :param:register_func: Method used to register and validate plugin.
+    :param pkgpath: Name of plugin to be downloaded from online repo or path to plugin folder or zip file.
+    :param install_path: Path where plugin will be installed.
+    :param register_func: Method used to register and validate plugin.
     """
     if os.path.exists(os.path.join(install_path, pkgpath)):
         raise exceptions.PluginAlreadyInstalled(pkgpath)
@@ -103,8 +103,8 @@ def install_deps(pkgpath):
 def copy_file(src, dst):
     """Copy a single file.
 
-    :param:src: Source name
-    :param:dst: Destination name
+    :param src: Source name
+    :param dst: Destination name
     """
     try:
         fin = os.open(src, READ_FLAGS)
@@ -129,10 +129,10 @@ def copy_file(src, dst):
 def copy_tree(src, dst, symlinks=False, ignore=[]):
     """Copy a full directory structure.
 
-    :param:src: Source path
-    :param:dst: Destination path
-    :param:symlinks: Copy symlinks
-    :param:ignore: Subdirs/filenames to ignore
+    :param src: Source path
+    :param dst: Destination path
+    :param symlinks: Copy symlinks
+    :param ignore: Subdirs/filenames to ignore
     """
     names = os.listdir(src)
 
@@ -164,7 +164,7 @@ def install_dir(pkgpath, install_path, register_func, delete_after_install=False
     """Install plugin from specified directory.
 
     install_path and register_func are same as :func:`install_plugin`.
-    :delete_after_install: Delete pkgpath after install (used in :func:`install_from_zip`).
+    :param delete_after_install: Delete pkgpath after install (used in :func:`install_from_zip`).
     """
     logger.debug("%s is a directory, attempting to validate", pkgpath)
     plugin = register_func(pkgpath)
@@ -244,8 +244,8 @@ def _sizeof_fmt(num, suffix="B"):
 def uninstall_plugin(pkgpath, force):
     """Uninstall a plugin.
 
-    :param:pkgpath: Path to package to uninstall (delete)
-    :param:force: Force uninstall without asking
+    :param pkgpath: Path to package to uninstall (delete)
+    :param force: Force uninstall without asking
     """
     pkgname = os.path.basename(pkgpath)
     if os.path.exists(pkgpath):
