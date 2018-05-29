@@ -17,7 +17,7 @@ class BaseIntegration(object):
     __metaclass__ = ABCMeta
 
     def __init__(self, integration_data):
-        """Use :func:`__init__` to set up any prerequisits needed before sending events, validate paramaters, etc.
+        """Use :func:`__init__` to set up any prerequisites needed before sending events, validate paramaters, etc.
 
         :param integration_data: Integration parameters
         :type integration_data: dict
@@ -34,8 +34,8 @@ class BaseIntegration(object):
         :rtype: tuple(dict(output_data), object(output_file))
         :raises IntegrationSendEventError: If there's a problem sending the event.
         :raises IntegrationMissingRequiredFieldError: If a required field is missing.
-        :return: A tuple where the first value is a dictionary with information to display in the UI, and second is and
-                 optional file to be attahed. If polling is enabled, the returned output_data will be passed to
+        :return: A tuple where the first value is a dictionary with information to display in the UI, and the second is
+                 an optional file to be attached. If polling is enabled, the returned output_data will be passed to
                  :func:`poll_for_updates`. If your integration returns nothing, you should return ({}, None).
         """
 
