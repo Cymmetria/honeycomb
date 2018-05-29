@@ -36,14 +36,6 @@ honeycomb.utils.tailer module
     :undoc-members:
     :show-inheritance:
 
-honeycomb.utils.validators module
----------------------------------
-
-.. automodule:: honeycomb.utils.validators
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 honeycomb.utils.wait module
 ---------------------------
 

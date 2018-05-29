@@ -9,7 +9,6 @@ from uuid import uuid4
 from attr import attrs, attrib, validators, Factory
 from datetime import datetime
 
-# from honeycomb.utils.validators import validate_ip_or_hostname
 from honeycomb.servicemanager.models import ServiceType
 
 

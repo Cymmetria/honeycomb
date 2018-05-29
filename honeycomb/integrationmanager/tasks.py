@@ -116,12 +116,12 @@ def send_alert_to_configured_integration(integration_alert):
                              integration.required_fields,
                              integration.name)
                 return
-        else:
-            exclude_fields = ["alert_type", "service_type"]
-            alert_fields = {}
-            for field in alert.__slots__:
-                if hasattr(alert, field) and field not in exclude_fields:
-                    alert_fields[field] = getattr(alert, field)
+
+        exclude_fields = ["alert_type", "service_type"]
+        alert_fields = {}
+        for field in alert.__slots__:
+            if hasattr(alert, field) and field not in exclude_fields:
+                alert_fields[field] = getattr(alert, field)
 
         logger.debug("Sending alert %s to %s", alert_fields, integration.name)
         output_data, output_file_content = integration_actions_instance.send_event(alert_fields)
