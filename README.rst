@@ -45,3 +45,8 @@ Using pip::
 Using Docker::
 
     $ docker run -v honeycomb.yml:/usr/share/honeycomb/honeycomb.yml cymmetria/honeycomb
+
+
+.. image:: https://badges.gitter.im/cymmetria/honeycomb.svg
+   :alt: Join the chat at https://gitter.im/cymmetria/honeycomb
+   :target: https://gitter.im/cymmetria/honeycomb?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
