@@ -20,7 +20,7 @@
    :target: https://codecov.io/gh/Cymmetria/honeycomb
 .. |Gitter| image:: https://badges.gitter.im/cymmetria/honeycomb.svg
    :alt: Join the chat at https://gitter.im/cymmetria/honeycomb
-   :target: https://gitter.im/cymmetria/honeycomb?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
+   :target: https://gitter.im/cymmetria/honeycomb
 
 Honeycomb - An extensible honeypot framework
 ============================================
