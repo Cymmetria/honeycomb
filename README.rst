@@ -1,4 +1,4 @@
-|GitHub license| |PyPI| |Read the Docs| |Travis| |Updates| |Codecov|
+|GitHub license| |PyPI| |Read the Docs| |Travis| |Updates| |Codecov| |Gitter|
 
 .. |GitHub license| image:: https://img.shields.io/github/license/Cymmetria/honeycomb.svg
    :alt: GitHub license
@@ -18,7 +18,9 @@
 .. |Codecov| image:: https://img.shields.io/codecov/c/github/Cymmetria/honeycomb.svg
    :alt: Codecov
    :target: https://codecov.io/gh/Cymmetria/honeycomb
-
+.. |Gitter| image:: https://badges.gitter.im/cymmetria/honeycomb.svg
+   :alt: Join the chat at https://gitter.im/cymmetria/honeycomb
+   :target: https://gitter.im/cymmetria/honeycomb
 
 Honeycomb - An extensible honeypot framework
 ============================================
