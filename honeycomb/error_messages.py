@@ -14,7 +14,7 @@ FIELD_MISSING = "field {} is missing from config file"
 CONFIG_FIELD_TYPE_ERROR = "Config error: '{}' is not a valid {}"
 PARAMETERS_FIELD_ERROR = "Parameters: '{}' is not a valid {}"
 PARAMETERS_DEFAULT_DOESNT_MATCH_TYPE = "Parameters: Bad value for {}={} (must be {})"
-PARAMETERS_REQUIRED_FIELD_MISSING = "Parameters: '{}' is missing (use --args to see all parameters)"
+PARAMETERS_REQUIRED_FIELD_MISSING = "Parameters: '{}' is missing (use --show_args to see all parameters)"
 
 PLUGIN_ALREADY_INSTALLED = "{} is already installed"
 PLUGIN_NOT_FOUND_IN_ONLINE_REPO = "Cannot find {} in online repository"
