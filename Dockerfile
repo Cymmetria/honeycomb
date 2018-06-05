@@ -14,18 +14,22 @@ RUN set -x && \
 ENV HC_HOME /usr/share/honeycomb
 RUN mkdir ${HC_HOME} && chown -vR 1000:1000 ${HC_HOME}
 
-# drop privileges and install honeycomb
-USER 1000
-COPY --chown=1000:1000 requirements.txt /app/requirements.txt
+# install honeycomb
+COPY requirements.txt /app/requirements.txt
 WORKDIR /app
 RUN virtualenv /app/venv && \
-	/app/venv/bin/pip install -r requirements.txt
+    /app/venv/bin/pip install -r requirements.txt
 ENV PATH /app/venv/bin:${PATH}
 
-COPY --chown=1000:1000 . /app/
+COPY . /app/
 RUN pip install --editable .
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
+
+# fix permissions and drop privileges
+RUN chown 1000:1000 -R /app
+USER 1000
+
 ENTRYPOINT ["/docker-entrypoint.sh"]
 
 VOLUME /usr/share/honeycomb
