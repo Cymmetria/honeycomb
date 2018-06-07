@@ -6,7 +6,7 @@
 .. |PyPI| image:: https://img.shields.io/pypi/v/honeycomb-framework.svg
    :alt: PyPI
    :target: https://pypi.org/project/honeycomb-framework/
-.. |Read the Docs| image:: https://img.shields.io/readthedocs/honeycomb.svg
+.. |Read the Docs| image:: https://img.shields.io/readthedocs/honeycomb/master.svg
    :alt: Read the Docs
    :target: http://honeycomb.cymmetria.com
 .. |Travis| image:: https://img.shields.io/travis/Cymmetria/honeycomb.svg
