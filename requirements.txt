@@ -4,4 +4,4 @@ attrs==18.1.0
 PyYAML==3.12
 requests==2.18.4
 python-daemon==2.1.2
-python-json-logger==0.1.8
+python-json-logger==0.1.9
