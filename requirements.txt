@@ -1,7 +1,7 @@
 six==1.11.0
 click==6.7
 attrs==18.1.0
-PyYAML==3.12
+PyYAML==4.1
 requests==2.19.0
 python-daemon==2.1.2
 python-json-logger==0.1.9
