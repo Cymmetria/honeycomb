@@ -32,7 +32,7 @@ Honeycomb is an open-source honeypot framework created by Cymmetria_.
 Honeycomb allows running honeypots with various integrations from a public library of plugins at https://github.com/Cymmetria/honeycomb_plugins
 
 Writing new honeypot services and integrations for honeycomb is super easy!
-See the `plugins repo <http://honeycomb.cymmetria.com/projects/honeycomb-plugins/en/latest/>` for more info.
+See the `plugins repo <http://honeycomb.cymmetria.com/projects/honeycomb-plugins/en/latest/>`_ for more info.
 
 Full CLI documentation can be found at http://honeycomb.cymmetria.com/en/latest/cli.html
 
