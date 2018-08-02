@@ -15,5 +15,5 @@ A yml configuration that specifies all of the desired configurations (services, 
 
 An example Honeycomb file can be found on `github <https://github.com/Cymmetria/honeycomb/blob/master/honeycomb.yml>`._
 
-.. literalinclude:: ../Honeycomb.yml
+.. literalinclude:: ../honeycomb.yml
    :linenos:
