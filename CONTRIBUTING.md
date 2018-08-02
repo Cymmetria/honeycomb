@@ -18,8 +18,11 @@ Follow instructions to init pyenv and add it to your bashrc/zshrc file
 
 
 ### Set up virtualenv and install honeycomb in editable mode
+    $ git clone project_url
+    $ cd honeycomb
     $ virtualenv venv
-    $ source venv/bin/acticate
+    $ source venv/bin/activate
+    $ pip install --upgrade pip setuptools
     $ pip install -r requirements-dev.txt  # will install tox
     $ pip install --editable .
 
