@@ -10,11 +10,10 @@ import logging
 from threading import Thread
 from multiprocessing import Process
 
-from six.moves.queue import Queue, Full, Empty
 import six
-from attr import attrs, attrib
 import docker
-from docker.errors import NotFound
+from attr import attrs, attrib
+from six.moves.queue import Queue, Full, Empty
 
 from honeycomb.decoymanager.models import Alert
 from honeycomb.servicemanager.defs import SERVICE_ALERT_QUEUE_SIZE
@@ -28,6 +27,7 @@ class ServerCustomService(Process):
 
     This class provides a basic wrapper for honeycomb (and mazerunner) services.
     """
+
     alerts_queue = None
     thread_server = None
 
@@ -149,14 +149,12 @@ class DockerService(ServerCustomService):
         raise NotImplementedError
 
     def parse_line(self, line):
-        """
-        Parse line and return dictionary if its an alert, else None / {}
-        """
+        """Parse line and return dictionary if its an alert, else None / {}."""
         raise NotImplementedError
 
     def get_lines(self):
-        """
-        Fetch log lines from the docker service
+        """Fetch log lines from the docker service.
+
         Possible ways:
             * via docker logs ->  return self._container.logs(stream=True)
             * mount the log files using docker_params property, in order to access the logs outside
@@ -166,8 +164,9 @@ class DockerService(ServerCustomService):
         raise NotImplementedError
 
     def read_lines(self, file_path, empty_lines=False, signal_ready=True):
-        """
-        Utility to fetch lines from file path in safety (in case of handler changes, keep get the alerts)
+        """Fetch lines from file path in safety.
+
+        In case of handler changes, keep get the alerts.
         """
         file_handler, file_id = self._get_file(file_path)
         file_handler.seek(0, os.SEEK_END)
@@ -202,7 +201,6 @@ class DockerService(ServerCustomService):
         return file_handler, file_id
 
     def on_server_start(self):
-        self._pull_docker_image_if_needed()
         self._container = self._docker_client.containers.run(self.docker_image_name, detach=True, **self.docker_params)
         self.signal_ready()
 
@@ -219,9 +217,3 @@ class DockerService(ServerCustomService):
             return
         self._container.stop()
         self._container.remove(v=True, force=True)
-
-    def _pull_docker_image_if_needed(self):
-        try:
-            self._docker_client.images.get(self.docker_image_name)
-        except NotFound:
-            self._docker_client.images.pull(self.docker_image_name)
