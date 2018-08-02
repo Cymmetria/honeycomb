@@ -3,13 +3,17 @@
 Pull requests are welcome! Please make sure to follow coding style requirements
 and confirm all tests pass before opening a PR
 
+Honeycomb uses the latest stable versions of Python2/3, this guide uses pyenv
+to make managing python versions easier but feel free to use whatever you like
+as long as you pass the tests :)
+
 ## Set up development environment
 
 Make sure you have both python 2.7 and 3.6 available as they are required for testing
 
 ### Install pyenv
     curl -L https://raw.githubusercontent.com/pyenv/pyenv-installer/master/bin/pyenv-installer | bash
-Follow instructions to init pyenv and add it to your bashrc/zshrc file
+See https://github.com/pyenv/pyenv#installation for full instructions on how to install pyenv.
 
 ### Install python 2 and 3
     $ pyenv install 2.7.14
@@ -18,12 +22,11 @@ Follow instructions to init pyenv and add it to your bashrc/zshrc file
 
 
 ### Set up virtualenv and install honeycomb in editable mode
-    $ git clone project_url
+    $ git clone git@github.com:Cymmetria/honeycomb.git
     $ cd honeycomb
     $ virtualenv venv
     $ source venv/bin/activate
-    $ pip install --upgrade pip setuptools
-    $ pip install -r requirements-dev.txt  # will install tox
+    $ pip install -r requirements-dev.txt  # will install tox and other deps
     $ pip install --editable .
 
 
