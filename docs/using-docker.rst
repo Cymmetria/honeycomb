@@ -13,7 +13,7 @@ This actually resembles configuring a docker environment, where the user needs t
 
 A yml configuration that specifies all of the desired configurations (services, integrations, etc.) will be supplied to Honeycomb, and it will work like a state-machine to reach the desired state before finally running the service.
 
-An example Honeycomb file can be found on `github <https://github.com/Cymmetria/Honeycomb/blob/master/honeycomb.yml>`._
+An example Honeycomb file can be found on `github <https://github.com/Cymmetria/honeycomb/blob/master/honeycomb.yml>`._
 
 .. literalinclude:: ../Honeycomb.yml
    :linenos:
