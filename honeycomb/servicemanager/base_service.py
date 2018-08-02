@@ -58,7 +58,7 @@ class ServerCustomService(Process):
     def on_server_shutdown(self):
         """Shutdown function of the server.
 
-        Override this and take care of gracefully shutting down you service (e.g., close files)
+        Override this and take care to gracefully shut down your service (e.g., close files)
         """
         raise NotImplementedError
 
