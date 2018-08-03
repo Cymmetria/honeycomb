@@ -7,6 +7,7 @@ import os
 import sys
 import shutil
 import logging
+import json
 import zipfile
 import tempfile
 import subprocess
@@ -322,6 +323,20 @@ def parse_plugin_args(command_args, config_args):
         elif arg[defs.REQUIRED]:  # requires field is true
             """parameter was not supplied by user, but it's required and has no default value"""
             raise exceptions.RequiredFieldMissing(value)
+
+        if value_type == defs.FILE_TYPE:
+            val = parsed_args[value]
+            logger.error(val + " " + os.getcwd())
+            if os.path.exists(val) and os.path.isfile(val):
+                try:
+                    with open(val, "rt") as fd:
+                        parsed_args[value] = json.load(fd)
+                except Exception as exc:
+                    raise exceptions.ConfigFieldTypeMismatch("Error parsing file as json: {}".format(exc))
+            else:
+                raise exceptions.ConfigFieldTypeMismatch("Supplied file doesn't exist or isn't a file")
+
+    
     return parsed_args
 
 

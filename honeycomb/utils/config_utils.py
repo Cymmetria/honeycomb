@@ -61,6 +61,7 @@ def validate_field_matches_type(field, value, field_type, select_items=None, _mi
     """Validate a config field against a specific type."""
     if (field_type == defs.TEXT_TYPE and not isinstance(value, six.string_types)) or \
        (field_type == defs.STRING_TYPE and not isinstance(value, six.string_types)) or \
+       (field_type == defs.FILE_TYPE and not isinstance(value, six.string_types)) or \
        (field_type == defs.BOOLEAN_TYPE and not isinstance(value, bool)) or \
        (field_type == defs.INTEGER_TYPE and not isinstance(value, int)):
         raise exceptions.ConfigFieldTypeMismatch(field, value, field_type)

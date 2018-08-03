@@ -83,6 +83,7 @@ HELP_TEXT = "help_text"
 VALIDATOR = "validator"
 FIELD_LABEL = LABEL
 
+FILE_TYPE = "file"
 TEXT_TYPE = "text"
 STRING_TYPE = "string"
 SELECT_TYPE = "select"
