@@ -1,15 +1,15 @@
 # Contributing to Honeycomb
 
 Pull requests are welcome! Please make sure to follow coding style requirements
-and confirm all tests pass before opening a PR
+and confirm all tests pass before opening a PR.
 
 ## Set up development environment
 
-Make sure you have both python 2.7 and 3.6 available as they are required for testing
+Make sure you have both python 2.7 and 3.6 available as they are required for testing.
 
 ### Install pyenv
     curl -L https://raw.githubusercontent.com/pyenv/pyenv-installer/master/bin/pyenv-installer | bash
-Follow instructions to init pyenv and add it to your bashrc/zshrc file
+Follow instructions to init pyenv and add it to your bashrc/zshrc file.
 
 ### Install python 2 and 3
     $ pyenv install 2.7.14
@@ -19,7 +19,7 @@ Follow instructions to init pyenv and add it to your bashrc/zshrc file
 
 ### Set up virtualenv and install honeycomb in editable mode
     $ virtualenv venv
-    $ source venv/bin/acticate
+    $ source venv/bin/activate
     $ pip install -r requirements-dev.txt  # will install tox
     $ pip install --editable .
 
@@ -27,4 +27,4 @@ Follow instructions to init pyenv and add it to your bashrc/zshrc file
 ### Make sure tests are working
     $ tox
 
-This will run all the existing tests, do not start coding before you solve any local configuration issues
+This will run all the existing tests, do not start coding before you resolve any local configuration issues.
