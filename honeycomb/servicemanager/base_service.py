@@ -184,7 +184,7 @@ class DockerService(ServerCustomService):
         if signal_ready:
             self.signal_ready()
 
-        while not self.is_stopped:
+        while self.thread_server.is_alive():
             line = unicode(file_handler.readline(), "utf-8")
             if line:
                 yield line
