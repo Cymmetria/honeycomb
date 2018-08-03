@@ -135,6 +135,8 @@ class ServerCustomService(Process):
 
 
 class DockerService(ServerCustomService):
+    """Provides an ability to run a Docker container that will be monitored for events."""
+
     def __init__(self, *args, **kwargs):
         super(DockerService, self).__init__(*args, **kwargs)
         self._container = None
@@ -142,10 +144,18 @@ class DockerService(ServerCustomService):
 
     @property
     def docker_params(self):
+        """Return a dictionary of docker run parameters.
+
+        .. seealso::
+            Docker run: https://docs.docker.com/engine/reference/run/
+
+        :return: Dictionary, e.g., :code:`dict(ports={80: 80})`
+        """
         return {}
 
     @property
     def docker_image_name(self):
+        """Return docker image name."""
         raise NotImplementedError
 
     def parse_line(self, line):
@@ -155,18 +165,18 @@ class DockerService(ServerCustomService):
     def get_lines(self):
         """Fetch log lines from the docker service.
 
-        Possible ways:
-            * via docker logs ->  return self._container.logs(stream=True)
-            * mount the log files using docker_params property, in order to access the logs outside
-        :returns a blocking logs generator
+        :return: A blocking logs generator
         """
-        # for example self._container.logs(stream=True)
-        raise NotImplementedError
+        return self._container.logs(stream=True)
 
     def read_lines(self, file_path, empty_lines=False, signal_ready=True):
-        """Fetch lines from file path in safety.
+        """Fetch lines from file.
 
-        In case of handler changes, keep get the alerts.
+        In case the file handler changes (logrotate), reopen the file.
+
+        :param file_path: Path to file
+        :param empty_lines: Return empty lines
+        :param signal_ready: Report signal ready on start
         """
         file_handler, file_id = self._get_file(file_path)
         file_handler.seek(0, os.SEEK_END)
@@ -201,6 +211,10 @@ class DockerService(ServerCustomService):
         return file_handler, file_id
 
     def on_server_start(self):
+        """Service run loop function.
+
+        Run the desired docker container with parameters and start parsing the monitored file for alerts.
+        """
         self._container = self._docker_client.containers.run(self.docker_image_name, detach=True, **self.docker_params)
         self.signal_ready()
 
@@ -213,6 +227,7 @@ class DockerService(ServerCustomService):
                 self.logger.exception(None)
 
     def on_server_shutdown(self):
+        """Stop the container before shutting down."""
         if not self._container:
             return
         self._container.stop()
