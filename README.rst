@@ -11,7 +11,7 @@
    :target: http://honeycomb.cymmetria.com
 .. |Travis| image:: https://img.shields.io/travis/Cymmetria/honeycomb.svg
    :alt: Travis
-   :target: https://travis-ci.org/Cymmetria/honeycomb
+   :target: https://travis-ci.com/Cymmetria/honeycomb
 .. |Updates| image:: https://pyup.io/repos/github/Cymmetria/honeycomb/shield.svg
     :target: https://pyup.io/repos/github/Cymmetria/honeycomb/
     :alt: Updates
