@@ -6,7 +6,6 @@ import os
 import sys
 import time
 import logging
-
 from threading import Thread
 from multiprocessing import Process
 
