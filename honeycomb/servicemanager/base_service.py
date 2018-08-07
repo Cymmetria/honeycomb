@@ -2,14 +2,16 @@
 """Custom Service implementation from MazeRunner."""
 from __future__ import unicode_literals, absolute_import
 
-
+import os
 import sys
+import time
 import logging
-from attr import attrs, attrib
 from threading import Thread
 from multiprocessing import Process
 
 import six
+import docker
+from attr import attrs, attrib
 from six.moves.queue import Queue, Full, Empty
 
 from honeycomb.decoymanager.models import Alert
@@ -24,6 +26,9 @@ class ServerCustomService(Process):
 
     This class provides a basic wrapper for honeycomb (and mazerunner) services.
     """
+
+    alerts_queue = None
+    thread_server = None
 
     logger = logging.getLogger(__name__)
     """Logger to be used by plugins and collected by main logger."""
@@ -67,17 +72,20 @@ class ServerCustomService(Process):
         # self.thread_server.daemon = True
         self.thread_server.start()
 
-        while self.thread_server.is_alive():
-            try:
-                new_alert = self.alerts_queue.get(timeout=1)
-                self.emit(**new_alert)
-            except Empty:
-                continue
-            except Exception as exc:
-                self.logger.exception(exc)
-            except KeyboardInterrupt:
-                self.logger.debug("Caught KeyboardInterrupt, shutting service down gracefully")
-                self._on_server_shutdown()
+        try:
+            while self.thread_server.is_alive():
+                try:
+                    new_alert = self.alerts_queue.get(timeout=1)
+                    self.emit(**new_alert)
+                except Empty:
+                    continue
+                except KeyboardInterrupt:
+                    self.logger.debug("Caught KeyboardInterrupt, shutting service down gracefully")
+                    raise
+                except Exception as exc:
+                    self.logger.exception(exc)
+        finally:
+            self._on_server_shutdown()
 
     def run(self):
         """Daemon entry point."""
@@ -118,8 +126,108 @@ class ServerCustomService(Process):
             self.logger.exception(exc)
 
     def _on_server_shutdown(self, signum=None, frame=None):
-        if (signum):
+        if signum:
             sys.stderr.write("Terminating on signal {}".format(signum))
-            self.logger.debug("Terminating on signal {}".format(signum))
+            self.logger.debug("Terminating on signal %s", signum)
         self.on_server_shutdown()
         raise SystemExit()
+
+
+class DockerService(ServerCustomService):
+    """Provides an ability to run a Docker container that will be monitored for events."""
+
+    def __init__(self, *args, **kwargs):
+        super(DockerService, self).__init__(*args, **kwargs)
+        self._container = None
+        self._docker_client = docker.from_env()
+
+    @property
+    def docker_params(self):
+        """Return a dictionary of docker run parameters.
+
+        .. seealso::
+            Docker run: https://docs.docker.com/engine/reference/run/
+
+        :return: Dictionary, e.g., :code:`dict(ports={80: 80})`
+        """
+        return {}
+
+    @property
+    def docker_image_name(self):
+        """Return docker image name."""
+        raise NotImplementedError
+
+    def parse_line(self, line):
+        """Parse line and return dictionary if its an alert, else None / {}."""
+        raise NotImplementedError
+
+    def get_lines(self):
+        """Fetch log lines from the docker service.
+
+        :return: A blocking logs generator
+        """
+        return self._container.logs(stream=True)
+
+    def read_lines(self, file_path, empty_lines=False, signal_ready=True):
+        """Fetch lines from file.
+
+        In case the file handler changes (logrotate), reopen the file.
+
+        :param file_path: Path to file
+        :param empty_lines: Return empty lines
+        :param signal_ready: Report signal ready on start
+        """
+        file_handler, file_id = self._get_file(file_path)
+        file_handler.seek(0, os.SEEK_END)
+
+        if signal_ready:
+            self.signal_ready()
+
+        while self.thread_server.is_alive():
+            line = six.text_type(file_handler.readline(), "utf-8")
+            if line:
+                yield line
+                continue
+            elif empty_lines:
+                yield line
+
+            time.sleep(0.1)
+
+            if file_id != self._get_file_id(os.stat(file_path)) and os.path.isfile(file_path):
+                file_handler, file_id = self._get_file(file_path)
+
+    @staticmethod
+    def _get_file_id(file_stat):
+        if os.name == "posix":
+            # st_dev: Device inode resides on.
+            # st_ino: Inode number.
+            return "%xg%x" % (file_stat.st_dev, file_stat.st_ino)
+        return "%f" % file_stat.st_ctime
+
+    def _get_file(self, file_path):
+        file_handler = open(file_path, "rb")
+        file_id = self._get_file_id(os.fstat(file_handler.fileno()))
+        return file_handler, file_id
+
+    def on_server_start(self):
+        """Service run loop function.
+
+        Run the desired docker container with parameters and start parsing the monitored file for alerts.
+        """
+        self._container = self._docker_client.containers.run(self.docker_image_name, detach=True, **self.docker_params)
+        self.signal_ready()
+
+        for log_line in self.get_lines():
+            try:
+                alert_dict = self.parse_line(log_line)
+                if alert_dict:
+                    self.add_alert_to_queue(alert_dict)
+            except Exception:
+                self.logger.exception(None)
+
+    def on_server_shutdown(self):
+        """Stop the container before shutting down."""
+        if not self._container:
+            return
+        self._container.stop()
+        self._container.remove(v=True, force=True)

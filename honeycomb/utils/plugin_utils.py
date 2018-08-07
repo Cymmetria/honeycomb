@@ -64,7 +64,8 @@ def install_plugin(pkgpath, plugin_type, install_path, register_func):
     :param install_path: Path where plugin will be installed.
     :param register_func: Method used to register and validate plugin.
     """
-    if os.path.exists(os.path.join(install_path, pkgpath)):
+    service_name = os.path.basename(pkgpath)
+    if os.path.exists(os.path.join(install_path, service_name)):
         raise exceptions.PluginAlreadyInstalled(pkgpath)
 
     if os.path.exists(pkgpath):
