@@ -4,7 +4,7 @@ python:
   - 2.7
   - 3.6
 
-install: pip install tox-travis
+install: pip install -U tox-travis pip setuptools
 script: tox
 
 stages:
