@@ -89,7 +89,8 @@ html_sidebars = {
     ]
 }
 html_theme_options = {
-    "description": "A light, configurable Sphinx theme",
+    "logo": "honeycomb.png",
+    "description": "An extensible honeypot framework",
     "github_user": "Cymmetria",
     "github_repo": "honeycomb",
     "fixed_sidebar": True,

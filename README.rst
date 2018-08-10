@@ -1,6 +1,6 @@
 |GitHub license| |PyPI| |Read the Docs| |Travis| |Updates| |Codecov| |Gitter|
 
-.. |honeycomb_logo| image:: honeycomb.png
+.. |honeycomb_logo| image:: https://i.imgur.com/x9rdRlF.png
    :alt: Honeycomb
    :target: https://github.com/Cymmetria/honeycomb
 .. |GitHub license| image:: https://img.shields.io/github/license/Cymmetria/honeycomb.svg
