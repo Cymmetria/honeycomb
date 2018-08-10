@@ -3,6 +3,6 @@ click~=6.0
 attrs~=18.1
 PyYAML~=3.0
 requests~=2.19
-python-daemon~=2.1
+python-daemon==2.1.2
 python-json-logger~=0.1
 docker~=3.4
