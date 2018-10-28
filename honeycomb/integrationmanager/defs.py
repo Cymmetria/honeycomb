@@ -72,13 +72,13 @@ INTEGRATION_VALIDATE_CONFIG_FIELDS = {
         lambda: "Invalid {} must be one of: {}".format(INTEGRATION_TYPE, IntegrationTypes.all_names())
     ),
     SUPPORTED_EVENT_TYPES: defs.ConfigField(
-        lambda event_types: (isinstance(event_types, list) and
-                             all([isinstance(_, six.string_types) for _ in event_types])),
+        lambda event_types: (isinstance(event_types, list)
+                             and all([isinstance(_, six.string_types) for _ in event_types])),
         lambda: CONFIG_FIELD_TYPE_ERROR.format(SUPPORTED_EVENT_TYPES, "list of strings")
     ),
     REQUIRED_FIELDS: defs.ConfigField(
-        lambda required_fields: (isinstance(required_fields, list) and
-                                 all([isinstance(_, six.string_types) for _ in required_fields])),
+        lambda required_fields: (isinstance(required_fields, list)
+                                 and all([isinstance(_, six.string_types) for _ in required_fields])),
         lambda: CONFIG_FIELD_TYPE_ERROR.format(SUPPORTED_EVENT_TYPES, "list of strings")
     ),
     MAX_SEND_RETRIES: config_utils.config_field_type(MAX_SEND_RETRIES, int),

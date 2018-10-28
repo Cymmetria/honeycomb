@@ -82,8 +82,8 @@ def get_valid_configured_integrations(alert):
     # Collect all integrations that are configured for specific alert_type
     # or have no specific supported_event_types (i.e., all alert types)
     valid_configured_integrations = [
-        _ for _ in configured_integrations if _.integration.integration_type == IntegrationTypes.EVENT_OUTPUT.name and
-        (not _.integration.supported_event_types or alert.alert_type in _.integration.supported_event_types)
+        _ for _ in configured_integrations if _.integration.integration_type == IntegrationTypes.EVENT_OUTPUT.name
+        and (not _.integration.supported_event_types or alert.alert_type in _.integration.supported_event_types)
     ]
 
     return valid_configured_integrations
