@@ -226,7 +226,6 @@ def install_from_repo(pkgname, plugin_type, install_path, register_func):
                         bar.update(downloaded_bytes)
         return install_from_zip(f.name, install_path, register_func, delete_after_install=True)
     except requests.exceptions.HTTPError as exc:
-        logger.debug(str(exc))
         raise exceptions.PluginNotFoundInOnlineRepo(pkgname)
     except requests.exceptions.ConnectionError as exc:
         logger.debug(str(exc))

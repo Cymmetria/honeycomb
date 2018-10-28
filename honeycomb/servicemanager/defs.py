@@ -65,9 +65,9 @@ SERVICE_CONFIG_VALIDATE_FIELDS = {
     ),
     PORTS: ConfigField(
         lambda ports: isinstance(ports, list) and all(
-            [port.get(PROTOCOL, False) in ALLOWED_PROTOCOLS
-             and (isinstance(port.get(PORT, False), int)
-             or port.get(PORT, "") == WILDCARD_PORT) for port in ports]),
+            [port.get(PROTOCOL, False) in ALLOWED_PROTOCOLS and
+             (isinstance(port.get(PORT, False), int) or
+             port.get(PORT, "") == WILDCARD_PORT) for port in ports]),
         lambda: "Ports configuration invalid, please consult docs."
     ),
     NAME: config_utils.config_field_type(NAME, six.string_types),
@@ -75,8 +75,8 @@ SERVICE_CONFIG_VALIDATE_FIELDS = {
     LABEL: config_utils.config_field_type(LABEL, six.string_types),
 
     CONFLICTS_WITH: ConfigField(
-        lambda conflicts_with: (isinstance(conflicts_with, list)
-                                and all([isinstance(_, six.string_types) for _ in conflicts_with])),
+        lambda conflicts_with: (isinstance(conflicts_with, list) and
+                                all([isinstance(_, six.string_types) for _ in conflicts_with])),
         lambda: CONFIG_FIELD_TYPE_ERROR.format(CONFLICTS_WITH, "list of strings")
     ),
 
