@@ -1,4 +1,11 @@
 tox==3.5.3
 sphinx==1.8.2
 sphinx-click==1.4.1
+codecov
+pytest==3.10.1
+pytest-cov
+pytest-dependency
+flake8
+flake8-docstrings
+
 -r requirements.txt
