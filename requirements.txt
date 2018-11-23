@@ -1,6 +1,6 @@
 six~=1.11
 click==7.0
-attrs~=18.1
+attrs==18.2.0
 PyYAML~=3.0
 requests~=2.19
 python-daemon~=2.1
