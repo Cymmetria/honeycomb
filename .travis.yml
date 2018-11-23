@@ -2,7 +2,7 @@ sudo: false
 language: python
 python:
   - 2.7
-  - 3.7
+  - 3.6
 
 install: pip install -U tox-travis tox-pipenv pip setuptools
 script: tox
@@ -14,5 +14,5 @@ stages:
 jobs:
   include:
     - stage: lint
-      python: 3.7
+      python: 3.6
       script: tox -e flake8
