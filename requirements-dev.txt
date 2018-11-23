@@ -7,7 +7,5 @@ pytest-cov
 pytest-dependency
 flake8
 flake8-docstrings
-sphinx
-sphinx_click
 
 -r requirements.txt
