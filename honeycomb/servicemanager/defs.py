@@ -6,7 +6,7 @@ from __future__ import unicode_literals, absolute_import
 import six
 
 from honeycomb.defs import (ConfigField, NAME, LABEL, DEFAULT, VALUE,
-                            TYPE, FIELD_LABEL, HELP_TEXT, REQUIRED, TEXT_TYPE, INTEGER_TYPE, BOOLEAN_TYPE)
+                            TYPE, FIELD_LABEL, HELP_TEXT, REQUIRED, TEXT_TYPE, INTEGER_TYPE, BOOLEAN_TYPE, FILE_TYPE)
 from honeycomb.utils import config_utils
 from honeycomb.error_messages import FIELD_MISSING, CONFIG_FIELD_TYPE_ERROR
 from honeycomb.decoymanager.models import Alert
@@ -40,7 +40,7 @@ ALLOWED_PROTOCOLS = [TCP, UDP]
 
 """Parameters."""
 SERVICE_ALLOWED_PARAMTER_KEYS = [VALUE, DEFAULT, TYPE, FIELD_LABEL, HELP_TEXT, REQUIRED]
-SERVICE_ALLOWED_PARAMTER_TYPES = [TEXT_TYPE, INTEGER_TYPE, BOOLEAN_TYPE]
+SERVICE_ALLOWED_PARAMTER_TYPES = [TEXT_TYPE, INTEGER_TYPE, BOOLEAN_TYPE, FILE_TYPE]
 
 SERVICE_FIELDS_TO_CREATE_OBJECT = [NAME, PORTS, LABEL, ALLOW_MANY, ALERT_TYPES, SUPPORTED_OS_FAMILIES]
 
