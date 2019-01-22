@@ -1,6 +1,6 @@
 tox==3.6.0
 sphinx==1.8.2
-sphinx-click==1.4.1
+sphinx-click==2.0.0
 codecov==2.0.15
 pytest==4.0.1
 pytest-cov==2.6.0
