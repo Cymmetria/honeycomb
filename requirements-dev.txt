@@ -1,5 +1,5 @@
 tox==3.7.0
-sphinx==1.8.2
+sphinx==2.1.2
 sphinx-click==1.4.1
 codecov==2.0.15
 pytest==4.0.1
