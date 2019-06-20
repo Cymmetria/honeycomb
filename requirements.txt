@@ -5,4 +5,4 @@ PyYAML==3.13
 requests==2.21.0
 python-daemon==2.2.3
 python-json-logger==0.1.10
-docker==3.7.0
+docker==4.0.2
