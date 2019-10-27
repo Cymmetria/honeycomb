@@ -3,6 +3,6 @@ click==7.0
 attrs==18.2.0
 PyYAML==3.13
 requests==2.21.0
-python-daemon==2.2.3
+python-daemon==2.2.4
 python-json-logger==0.1.10
 docker==3.7.0
